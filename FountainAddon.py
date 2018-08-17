@@ -43,6 +43,9 @@ def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_w
     y_offset = 0
     line_height = (blf.dimensions(font_id, "M")[1] * 1.45)
     
+    if not packed_strings or len(packed_strings) == 0:
+        return
+
     if len(packed_strings[-1]) != 2:
         packed_strings = packed_strings[:-1]
     
@@ -193,23 +196,25 @@ class DrawingClass:
         y = 60
         draw_string(x, y, ps, left_align=False, max_width=0.2 * self.width)
 
-        ps = []
-        for line in self.action.splitlines():
-            ps.append( (line, CYAN))
-            ps.append( CR )
-        x = 20
-        y = self.height-70
-        draw_string(x, y, ps, left_align=True, bottom_align=False, max_width=0.9 * self.width)
+        if self.action:
+            ps = []
+            for line in self.action.splitlines():
+                ps.append( (line, CYAN))
+                ps.append( CR )
+            x = 20
+            y = self.height-70
+            draw_string(x, y, ps, left_align=True, bottom_align=False, max_width=0.9 * self.width)
 
-        ps = []
-        for line in self.dialogue.splitlines():
+        if self.dialogue:
+            ps = []
             ps.append( (self.character + " : ", ORANGE) )
-            ps.append( (line, YELLOW))
-            ps.append( CR )
+            for line in self.dialogue.splitlines():
+                ps.append( (line, YELLOW))
+                ps.append( CR )
 
-        x = 60
-        y = 40
-        draw_string(x, y, ps, left_align=True, bottom_align=True, max_width=0.7 * self.width)
+            x = 60
+            y = 40
+            draw_string(x, y, ps, left_align=True, bottom_align=True, max_width=0.7 * self.width)
 
     def remove_handle(self):
          bpy.types.SpaceView3D.draw_handler_remove(self.handle, 'WINDOW')
