@@ -493,6 +493,9 @@ class ImportFountain(bpy.types.Operator):
         sequence = 0
         scene = 0
 
+        render = context.scene.render
+        framerate = render.fps / render.fps_base
+
         scene_number = ""
 
         for fc, f in enumerate(F.elements):
@@ -578,12 +581,13 @@ class ImportFountain(bpy.types.Operator):
             elif f.element_type == 'Dialogue':
                 dialogue_in_scene += 1
                 word_count = len(f.element_text.split())
-                delta += word_count
+                delta += int(word_count * framerate * 0.5)
+                print(delta)
                 name += "_D" + str(dialogue_in_scene)
                 target = character
             elif f.element_type == 'Action':
                 action_in_scene += 1
-                delta += 5
+                delta += int(5.0 * framerate)
                 name += "_A" + str(action_in_scene)
                 target = scene_info
             elif f.element_type == 'Scene Heading':
@@ -592,6 +596,7 @@ class ImportFountain(bpy.types.Operator):
                 target = scene_number
             elif f.element_type == 'Transition':
                 target = ""
+                delta += int(2.0 * framerate)
             else:
                 continue
 
@@ -617,6 +622,8 @@ class ImportFountain(bpy.types.Operator):
         
         for f in fountain_collection:
             context.scene.timeline_markers.new(f.name, f.frame)
+
+        context.scene.frame_end = frame
 
         return {"FINISHED"}
 #end import Fountain
