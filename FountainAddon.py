@@ -35,6 +35,13 @@ bl_info = \
 def texts(self, context):
     return [(text.name, text.name, '') for text in bpy.data.texts]
 
+def frameToTime(frame, context):
+    render = context.scene.render
+    framerate = render.fps / render.fps_base
+    time_in_seconds = frame / framerate
+    minutes = math.floor(time_in_seconds / 60.0)
+    seconds = time_in_seconds - (minutes * 60)
+    return "{:02d}:{:00.2f}".format(minutes, seconds)
 
 def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_width=0.7):
     font_id = 0
@@ -239,7 +246,7 @@ class FountainProps(PropertyGroup):
     marker_on_action = BoolProperty(default=True)
     marker_on_transition = BoolProperty(default=True)
     marker_on_section = BoolProperty(default=True)
-    marker_on_dialogue = BoolProperty(default=False)
+    marker_on_dialogue = BoolProperty(default=True)
        
     def get_body(self):
         text = bpy.data.texts[self.scene_texts]
@@ -400,21 +407,27 @@ class PrintFountain(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        render = context.scene.render
-        
         if len(context.scene.timeline_markers) == 0:
             self.report({'INFO'},"No markers found.")
             return {'CANCELLED'}
         
-        sorted_markers = sorted(context.scene.timeline_markers, key=operator.attrgetter('frame'))
+        sorted_markers = sorted(context.scene.fountain_markers, key=operator.attrgetter('frame'))
+        fountain = context.scene.fountain
 
         markers_as_timecodes = ""
-        framerate = render.fps / render.fps_base
         for marker in sorted_markers:
-            time_in_seconds = marker.frame / framerate
-            minutes = math.floor(time_in_seconds / 60.0)
-            seconds = time_in_seconds - (minutes * 60)
-            result = "{:02d}:{:00.2f}".format(minutes, seconds) + " " + marker.name
+            if marker.fountain_type == 'Scene Heading' and not fountain.marker_on_scene:
+                continue
+            if marker.fountain_type == 'Section Heading' and not fountain.marker_on_section:
+                continue
+            if marker.fountain_type == 'Action' and not fountain.marker_on_action:
+                continue
+            if marker.fountain_type == 'Dialogue' and not fountain.marker_on_dialogue:
+                continue
+            if marker.fountain_type == 'Transition' and not fountain.marker_on_transition:
+                continue
+            
+            result = frameToTime(marker.frame, context) + " " + marker.content
             markers_as_timecodes += result + "\n"
         print(markers_as_timecodes)
         return {"FINISHED"}
@@ -605,6 +618,22 @@ class ImportFountain(bpy.types.Operator):
             else:
                 continue
 
+            skip = False
+            if f.element_type == 'Scene Heading' and not context.scene.fountain.marker_on_scene:
+                skip = True
+            if f.element_type == 'Section Heading' and not context.scene.fountain.marker_on_section:
+                skip = True
+            if f.element_type == 'Action' and not context.scene.fountain.marker_on_action:
+                skip = True
+            if f.element_type == 'Dialogue' and not context.scene.fountain.marker_on_dialogue:
+                skip = True
+            if f.element_type == 'Transition' and not context.scene.fountain.marker_on_transition:
+                skip = True
+
+            if skip:
+                frame += delta
+                continue
+
             element = fountain_collection.add()
             element.is_dual_dialogue = is_dual_dialogue
             element.fountain_type = f.element_type
@@ -615,6 +644,8 @@ class ImportFountain(bpy.types.Operator):
             element.duration = delta
             element.line_number = f.original_line + 2
 
+            frame += delta
+
             if name in current_collection:
                 element.frame, element.duration = current_collection[name]
                 frame = element.frame
@@ -623,7 +654,6 @@ class ImportFountain(bpy.types.Operator):
             if is_dual_dialogue:
                 element.frame = fountain_collection[-2].frame
 
-            frame += delta
         
         for f in fountain_collection:
             context.scene.timeline_markers.new(f.name, f.frame)
