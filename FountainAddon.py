@@ -195,6 +195,7 @@ class DrawingClass:
         GREEN = (0, 1, 0, 1)
         BLUE = (0, 0, 1, 1)
         CYAN = (0, 1, 1, 1)
+        MAGENTA = (1,0,1,1)
         YELLOW = (1, 1, 0, 1)
         ORANGE = (1, 0.8, 0, 1)
         WHITE = (1,1,1,0.8)
@@ -217,7 +218,10 @@ class DrawingClass:
                         line = line[split_index+1:]    
                     else:
                         break
-                ps.append( (line, CYAN))
+                if line == 'Transition':
+                    ps.append( (line, MAGENTA))
+                else:
+                    ps.append( (line, CYAN))
                 ps.append( CR )
             x = 20
             y = self.height-70
