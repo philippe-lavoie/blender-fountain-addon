@@ -209,6 +209,14 @@ class DrawingClass:
         if self.action:
             ps = []
             for line in self.action.splitlines():
+                while len(line) > context.scene.fountain.max_characters:
+                    split_index = line.rfind(' ', 0, context.scene.fountain.max_characters)
+                    if split_index > 0:
+                        ps.append( (line[:split_index], CYAN))
+                        ps.append( CR )
+                        line = line[split_index+1:]    
+                    else:
+                        break
                 ps.append( (line, CYAN))
                 ps.append( CR )
             x = 20
@@ -218,7 +226,17 @@ class DrawingClass:
         if self.dialogue:
             ps = []
             ps.append( (self.character + " : ", ORANGE) )
+            max_characters = context.scene.fountain.max_characters - len(self.character) - 3
             for line in self.dialogue.splitlines():
+                while len(line) > max_characters:
+                    split_index = line.rfind(' ', 0, max_characters)
+                    if split_index > 0:
+                        ps.append( (line[:split_index], YELLOW))
+                        ps.append( CR )
+                        ps.append( (' ' * (len(self.character) + 3), YELLOW))
+                        line = line[split_index+1:]    
+                    else:
+                        break
                 ps.append( (line, YELLOW))
                 ps.append( CR )
 
@@ -251,6 +269,7 @@ class FountainProps(PropertyGroup):
     marker_on_section = BoolProperty(default=True)
     marker_on_dialogue = BoolProperty(default=True)
     title = StringProperty(default="")
+    max_characters = IntProperty(default=80)
        
     def get_body(self):
         text = bpy.data.texts[self.scene_texts]
@@ -322,6 +341,7 @@ class FountainPanel(bpy.types.Panel):
         column = row.column(align=True)
         row = column.row(align=True)
         row.prop(fountain, 'show_fountain', text='Show Scene information')
+        row.prop(fountain, 'max_characters', text='Characters per line')
         
         row = column.row(align = True) 
         row.prop(fountain, 'scene_texts', text = '', icon = 'TEXT', icon_only=True)                                                
