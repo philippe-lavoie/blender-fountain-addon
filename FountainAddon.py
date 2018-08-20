@@ -126,9 +126,6 @@ class DrawingClass:
         self.last_frame = -1
         self.last_index = 0
 
-    def bob(self):
-        pass
-
     def set_content(self, element):
         self.marker = element.name
         self.character = ""
@@ -253,6 +250,7 @@ class FountainProps(PropertyGroup):
     marker_on_transition = BoolProperty(default=True)
     marker_on_section = BoolProperty(default=True)
     marker_on_dialogue = BoolProperty(default=True)
+    title = StringProperty(default="")
        
     def get_body(self):
         text = bpy.data.texts[self.scene_texts]
@@ -324,9 +322,6 @@ class FountainPanel(bpy.types.Panel):
         column = row.column(align=True)
         row = column.row(align=True)
         row.prop(fountain, 'show_fountain', text='Show Scene information')
-        row = column.row(align=True)
-        row.enabled = False
-        row.prop(context.scene, "fountain_title")
         
         row = column.row(align = True) 
         row.prop(fountain, 'scene_texts', text = '', icon = 'TEXT', icon_only=True)                                                
@@ -354,6 +349,12 @@ class FountainPanel(bpy.types.Panel):
         row = column.row(align=True)
         row.operator("scene.print_fountain", text="Print Markers")
         row.operator("scene.synch_markers", text="Sync markers")
+
+        row = self.layout.row()
+        column = row.column(align=True)
+        row = column.row(align=True)
+        row.enabled = False
+        row.prop(fountain, "title")
 
         row = self.layout.row()
         rows = 2
@@ -507,8 +508,8 @@ class ImportFountain(bpy.types.Operator):
         fountain_script = context.scene.fountain.get_body()
         F = fountain.Fountain( fountain_script )
         
-        if 'Title' in F.metadata:
-            context.scene.fountain.Title = F.metadata['Title']
+        if 'title' in F.metadata:
+            context.scene.fountain.title = F.metadata['title'][0]
 
         context.scene.timeline_markers.clear()
         fountain_collection = context.scene.fountain_markers
