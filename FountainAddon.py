@@ -643,7 +643,7 @@ class ImportFountain(bpy.types.Operator):
                 target = character
             elif f.element_type == 'Action':
                 action_in_scene += 1
-                delta += int(5.0 * framerate)
+                delta += int(1.0 * framerate * (f.element_text.count('.') + 1))
                 name += "_A" + str(action_in_scene)
                 target = scene_info
             elif f.element_type == 'Scene Heading':

@@ -170,7 +170,7 @@ class Fountain:
                     self.elements.append(FountainElement('Transition', full_strip[1:].strip(), original_line=linenum, original_content=line))
                 continue
 
-            if newlines_before > 0 and index + 1 < len(script_body) and script_body[index + 1]:
+            if newlines_before > 0 and index + 1 < len(script_body) and script_body[index + 1] and line.isupper():
                 newlines_before = 0
                 if full_strip[-1] == '^':
                     for element in reversed(self.elements):
