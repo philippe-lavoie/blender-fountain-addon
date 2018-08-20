@@ -35,13 +35,19 @@ bl_info = \
 def texts(self, context):
     return [(text.name, text.name, '') for text in bpy.data.texts]
 
-def frameToTime(frame, context):
+def frameToTime(frame, context, verbose = True):
     render = context.scene.render
     framerate = render.fps / render.fps_base
     time_in_seconds = frame / framerate
     minutes = math.floor(time_in_seconds / 60.0)
     seconds = time_in_seconds - (minutes * 60)
-    return "{:02d}:{:00.2f}".format(minutes, seconds)
+    if verbose:
+        if minutes>0:
+            return "{:0d} min {:00.2f}sec".format(minutes, seconds)
+        else:
+            return "{:0.2f} sec".format(seconds)
+    else:
+        return "{:02d}:{:00.2f}".format(minutes, seconds)
 
 def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_width=0.7):
     font_id = 0
@@ -317,8 +323,10 @@ class FountainPanel(bpy.types.Panel):
         row = self.layout.row()
         column = row.column(align=True)
         row = column.row(align=True)
-        row.prop(context.scene, "fountain_title")
         row.prop(fountain, 'show_fountain', text='Show Scene information')
+        row = column.row(align=True)
+        row.enabled = False
+        row.prop(context.scene, "fountain_title")
         
         row = column.row(align = True) 
         row.prop(fountain, 'scene_texts', text = '', icon = 'TEXT', icon_only=True)                                                
@@ -361,11 +369,16 @@ class FountainPanel(bpy.types.Panel):
         else:
             row = self.layout.row()
             column = row.column(align=True)
+            column.enabled = False
             column.prop(item, "name")
             column.prop(item, "fountain_type")
             column.prop(item, "content")
             column.prop(item, "target")
             column.prop(item, "line_number")
+            if item.duration > 0:                
+                column.label("At " + frameToTime(item.frame, context) + " for " + frameToTime(item.duration, context))
+            else:
+                column.label("At " + frameToTime(item.frame, context))
             
 #end FountainPanel
 
@@ -427,7 +440,7 @@ class PrintFountain(bpy.types.Operator):
             if marker.fountain_type == 'Transition' and not fountain.marker_on_transition:
                 continue
             
-            result = frameToTime(marker.frame, context) + " " + marker.content
+            result = frameToTime(marker.frame, context, verbose=False) + " " + marker.content
             markers_as_timecodes += result + "\n"
         print(markers_as_timecodes)
         return {"FINISHED"}
