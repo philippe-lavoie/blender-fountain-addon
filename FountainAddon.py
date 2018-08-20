@@ -49,6 +49,11 @@ def frameToTime(frame, context, verbose = True):
     else:
         return "{:02d}:{:00.2f}".format(minutes, seconds)
 
+def stringFits(pstr, max_width):
+    font_id = 0
+    text_width, text_height = blf.dimensions(font_id, pstr)
+    return text_width < max_width
+
 def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_width=0.7):
     font_id = 0
     blf.size(font_id, 14, 72) 
@@ -56,8 +61,10 @@ def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_w
     y_offset = 0
     line_height = (blf.dimensions(font_id, "M")[1] * 1.45)
     
+    max_size = 0
+
     if not packed_strings or len(packed_strings) == 0:
-        return
+        return 0
 
     if len(packed_strings[-1]) != 2:
         packed_strings = packed_strings[:-1]
@@ -76,17 +83,28 @@ def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_w
                 pstr, pcol = command
                 text_width, text_height = blf.dimensions(font_id, pstr)
                 line_width += text_width
-                if line_width > max_width:
-                    previous_width = line_width - text_width
-                    if previous_width <= 0:
-                        previous_width = line_width    
-                    split_index = int((max_width - previous_width) / text_width) * len(pstr)
-                    split_index = pstr.rfind(' ', 0, split_index)
-                    new_pack = packed_strings[:index]
-                    new_pack.append((pstr[:split_index], pcol))
-                    new_pack.append((pstr[split_index:], pcol))
-                    new_pack.append(packed_strings[index:])
-                    draw_string(x,y,new_pack, left_align=left_align, bottom_align=bottom_align, max_width=max_width)
+                # print("max: " + str(max_width) + "/" + str(text_width) + "/" + str(line_width) + " : " + pstr)
+                # if line_width > max_width:
+                #     previous_width = line_width - text_width
+                #     if previous_width <= 0:
+                #         previous_width = 0    
+                #     split_index = int(len(pstr) * (1.0 - ((text_width - previous_width - max_width) / max_width)))
+                #     print('split at ' + str(split_index))
+                #     split_index = pstr.rfind(' ', 0, split_index)
+                #     if split_index > 0:
+                #         new_pack = packed_strings[:index]
+                #         new_pack.append((pstr[:split_index], pcol))
+                #         new_pack.append( '\n')
+                #         if len(packed_strings) <= index:
+                #             next_command = new_pack[index+1]
+                #             if len(next_command) == 2:
+                #                 n_pstr, pcol = next_command
+                #                 new_pack.append( (pstr[split_index:] + n_pstr, pcol) )
+                #                 if len(packed_strings) <= index + 2:
+                #                     new_pack.append(packed_strings[index+2:])
+                #         else:
+                #             new_pack.append((pstr[split_index+1:], pcol))
+                #         draw_string(x,y,new_pack, left_align=left_align, bottom_align=bottom_align, max_width=max_width)
             else:               
                 while len(line_widths) <= index:
                     line_widths.append(line_width)
@@ -108,10 +126,13 @@ def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_w
             blf.position(font_id, (x + x_offset - line_width), (y + y_offset), 0)
             blf.draw(font_id, pstr)
             x_offset += text_width
+            if x_offset > max_size:
+                max_size = x_offset
         else:
             x_offset = 0
             y_offset -= line_height
         index += 1
+    return max_size
 
 class DrawingClass:
     def __init__(self, context):
@@ -205,13 +226,22 @@ class DrawingClass:
         ps = [(self.scene, WHITE),CR, (self.marker, WHITE)]
         x = self.width-20
         y = 60
-        draw_string(x, y, ps, left_align=False, max_width=0.2 * self.width)
+        label_size = draw_string(x, y, ps, left_align=False, max_width=0.2 * self.width) + 40
+
+        screen_max_characters = context.scene.fountain.max_characters
 
         if self.action:
             ps = []
             for line in self.action.splitlines():
-                while len(line) > context.scene.fountain.max_characters:
-                    split_index = line.rfind(' ', 0, context.scene.fountain.max_characters)
+                while len(line) > screen_max_characters or not stringFits(line, self.width - 40):
+                    screen_max_characters = context.scene.fountain.max_characters
+                    while not stringFits(line[:screen_max_characters], self.width - 40):
+                        split_index = line.rfind(' ', 0, screen_max_characters)
+                        if split_index <= 0:
+                            break
+                        screen_max_characters = split_index
+
+                    split_index = line.rfind(' ', 0, screen_max_characters)
                     if split_index > 0:
                         ps.append( (line[:split_index], CYAN))
                         ps.append( CR )
@@ -225,15 +255,22 @@ class DrawingClass:
                 ps.append( CR )
             x = 20
             y = self.height-70
-            draw_string(x, y, ps, left_align=True, bottom_align=False, max_width=0.9 * self.width)
+            draw_string(x, y, ps, left_align=True, bottom_align=False, max_width= self.width - 40)
 
         if self.dialogue:
             ps = []
             ps.append( (self.character + " : ", ORANGE) )
             max_characters = context.scene.fountain.max_characters - len(self.character) - 3
             for line in self.dialogue.splitlines():
-                while len(line) > max_characters:
-                    split_index = line.rfind(' ', 0, max_characters)
+                while len(line) > max_characters or not stringFits(self.character + " : " + line, self.width - label_size):
+                    screen_max_characters = max_characters
+                    while not stringFits(self.character + " : " + line[:screen_max_characters], self.width - label_size):
+                        split_index = line.rfind(' ', 0, screen_max_characters)
+                        if split_index <= 0:
+                            break
+                        screen_max_characters = split_index
+
+                    split_index = line.rfind(' ', 0, screen_max_characters)
                     if split_index > 0:
                         ps.append( (line[:split_index], YELLOW))
                         ps.append( CR )
@@ -246,7 +283,7 @@ class DrawingClass:
 
             x = 60
             y = 40
-            draw_string(x, y, ps, left_align=True, bottom_align=True, max_width=0.7 * self.width)
+            draw_string(x, y, ps, left_align=True, bottom_align=True, max_width= self.width - label_size)            
 
     def remove_handle(self):
          bpy.types.SpaceView3D.draw_handler_remove(self.handle, 'WINDOW')
