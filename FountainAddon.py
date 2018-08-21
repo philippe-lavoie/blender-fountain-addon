@@ -394,6 +394,7 @@ class FountainPanel(bpy.types.Panel):
         row.operator("scene.import_fountain", text="Import")
         row.operator("scene.clear_fountain", text="Clear")
         row.operator("scene.update_fountain_script", text="Update Script")
+        row.operator("scene.clean_fountain_script", text="Clean Script")
 
         if len(fountain.script) > 0:
             row = self.layout.row()
@@ -508,13 +509,40 @@ class PrintFountain(bpy.types.Operator):
         return {"FINISHED"}
 #end PrintFountain
 
+class CleanScript(bpy.types.Operator):
+    bl_idname="scene.clean_fountain_script"
+    bl_label="Clean fountain script"
+
+    @classmethod
+    def poll(self, context):
+        return len(context.scene.fountain.script) > 0
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        body = context.scene.fountain.get_body()
+        lines = body.split('\n')
+        clean = []
+
+        for line in lines:
+            if line[:6] == "[[t&d:":
+                continue
+            clean.append(line)
+
+        context.scene.fountain.get_script().from_string("\n".join(clean))
+        if len(context.scene.fountain_markers) > 0:
+            bpy.ops.scene.import_fountain('EXEC_DEFAULT')
+        return {"FINISHED"}
+#end CleanScript
+
 class UpdateScript(bpy.types.Operator):
     bl_idname="scene.update_fountain_script"
     bl_label="Update fountain script"
 
     @classmethod
     def poll(self, context):
-        return len(context.scene.fountain.script) > 0
+        return len(context.scene.fountain.script) > 0 and len(context.scene.fountain_markers) > 0
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -534,7 +562,7 @@ class UpdateScript(bpy.types.Operator):
                 offset += 1
 
         context.scene.fountain.get_script().from_string("\n".join(lines))
-
+        bpy.ops.scene.import_fountain('EXEC_DEFAULT')
         return {"FINISHED"}
 #end UpdateScript
 
@@ -551,6 +579,7 @@ class ClearFountain(bpy.types.Operator):
 
     def execute(self, context):
         context.scene.fountain_markers.clear()
+        context.scene.timeline_markers.clear()
         return {"FINISHED"}
 #end UpdateScript
 
@@ -608,6 +637,7 @@ class ImportFountain(bpy.types.Operator):
         element_in_scene = 0
         action_in_scene = 0
         dialogue_in_scene = 0
+        transition_in_scene = 0
         target = ""
         scene_info = ""
         character = ""
@@ -627,6 +657,7 @@ class ImportFountain(bpy.types.Operator):
                 action_in_scene = 0
                 dialogue_in_scene = 0
                 target = ""
+                transition_in_scene = 0
 
             if f.element_type == 'Scene Heading':
                 scene += 1
@@ -635,6 +666,7 @@ class ImportFountain(bpy.types.Operator):
                 dialogue_in_scene = 0
                 scene_info = f.element_text
                 target = f.element_text
+                transition_in_scene = 0
 
             if use_scene_only:
                 scene_number = "S_" + str(scene)
@@ -667,15 +699,14 @@ class ImportFountain(bpy.types.Operator):
                 if f.element_text[0:4] == "t&d:":
                     time_and_duration = f.element_text[4:].split()
                     frame = int(time_and_duration[0])
-                    duration = int(time_and_duration[1])
+                    delta = int(time_and_duration[1])
                     fountain_collection[-1].frame = frame
-                    fountain_collection[-1].duration = duration
+                    fountain_collection[-1].duration = delta
                 continue
             elif f.element_type == 'Dialogue':
                 dialogue_in_scene += 1
                 word_count = len(f.element_text.split())
                 delta += int(word_count * framerate * 0.5)
-                print(delta)
                 name += "_D" + str(dialogue_in_scene)
                 target = character
             elif f.element_type == 'Action':
@@ -689,6 +720,8 @@ class ImportFountain(bpy.types.Operator):
                 target = scene_number
             elif f.element_type == 'Transition':
                 target = ""
+                transition_in_scene += 1
+                name += "_T" + str(transition_in_scene)
                 delta += int(2.0 * framerate)
             else:
                 continue
@@ -719,6 +752,8 @@ class ImportFountain(bpy.types.Operator):
             element.duration = delta
             element.line_number = f.original_line + 2
 
+            print(element.name + ' : ' + str(element.frame))
+
             frame += delta
 
             if name in current_collection:
@@ -734,6 +769,8 @@ class ImportFountain(bpy.types.Operator):
             context.scene.timeline_markers.new(f.name, f.frame)
 
         context.scene.frame_end = frame
+
+        print()
 
         return {"FINISHED"}
 #end import Fountain
