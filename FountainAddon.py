@@ -345,7 +345,7 @@ class FountainMarker(bpy.types.PropertyGroup):
     name = bpy.props.StringProperty(update=updateName)
     original_name = bpy.props.StringProperty()
     frame = bpy.props.IntProperty()
-    duration = bpy.props.IntProperty()
+    duration = bpy.props.IntProperty(default=0, min=0)
 
     fountain_type = bpy.props.EnumProperty(
                     name='Foutain element type',
@@ -436,13 +436,20 @@ class FountainPanel(bpy.types.Panel):
             column.enabled = False
             column.prop(item, "name")
             column.prop(item, "fountain_type")
-            column.prop(item, "content")
-            column.prop(item, "target")
-            column.prop(item, "line_number")
+            column = row.column(align=True)
+            column.prop(item, "duration")
             if item.duration > 0:                
                 column.label("At " + frameToTime(item.frame, context) + " for " + frameToTime(item.duration, context))
             else:
                 column.label("At " + frameToTime(item.frame, context))
+            row = self.layout.row()
+            column = row.column(align=True)
+            column.enabled = False
+            column.prop(item, "content")
+            column.prop(item, "target")
+            column.prop(item, "line_number")
+            if item.frame != context.scene.frame_current:
+                bpy.context.scene.frame_set(item.frame)
             if fountain.script_line != item.line_number:
                 fountain.script_line = item.line_number
                 bpy.ops.scene.move_fountain_script('EXEC_DEFAULT')
