@@ -17,7 +17,8 @@ bl_info = \
 #     import importlib
 #     importlib.reload(fountain)
 # else:
-#     from .fountain import fountain 
+#     from .fountain.fountain import fountain 
+
 
 import os
 import bpy
@@ -647,11 +648,6 @@ class ImportFountain(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        dir = os.path.dirname(bpy.data.filepath)
-        if not dir in sys.path:
-            sys.path.append(dir)
-
-        from fountain import fountain 
         fountain_script = context.scene.fountain.get_body()
         F = fountain.Fountain( fountain_script )
         
@@ -809,6 +805,8 @@ class ImportFountain(bpy.types.Operator):
             element.duration = delta
             element.line_number = f.original_line + 2
 
+            print(element.name + ' : ' + str(element.frame))
+
             frame += delta
 
             if name in current_collection:
@@ -824,6 +822,8 @@ class ImportFountain(bpy.types.Operator):
             context.scene.timeline_markers.new(f.name, f.frame)
 
         context.scene.frame_end = frame
+
+        print()
 
         return {"FINISHED"}
 #end import Fountain
