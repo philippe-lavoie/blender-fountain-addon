@@ -8,8 +8,8 @@ bl_info = \
         "description" :
             "Allows you to add fountain script elements as markers with dialogue and action descriptions",
         "warning" : "",
-        "wiki_url" : "",
-        "tracker_url" : "",
+        "wiki_url" : "https://github.com/philippe-lavoie/blender-fountain-addon/wiki",
+        "tracker_url" : "https://github.com/philippe-lavoie/blender-fountain-addon.git",
         "category" : "Animation",
     }
 
