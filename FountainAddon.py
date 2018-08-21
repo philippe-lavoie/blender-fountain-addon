@@ -310,7 +310,8 @@ class FountainProps(PropertyGroup):
     marker_on_section = BoolProperty(default=True)
     marker_on_dialogue = BoolProperty(default=True)
     title = StringProperty(default="")
-    max_characters = IntProperty(default=80)
+    max_characters = IntProperty(default=80, min=10)
+    script_line = IntProperty(default=-1)
        
     def get_body(self):
         text = bpy.data.texts[self.scene_texts]
@@ -442,6 +443,9 @@ class FountainPanel(bpy.types.Panel):
                 column.label("At " + frameToTime(item.frame, context) + " for " + frameToTime(item.duration, context))
             else:
                 column.label("At " + frameToTime(item.frame, context))
+            if fountain.script_line != item.line_number:
+                fountain.script_line = item.line_number
+                bpy.ops.scene.move_fountain_script('EXEC_DEFAULT')
             
 #end FountainPanel
 
@@ -508,6 +512,46 @@ class PrintFountain(bpy.types.Operator):
         print(markers_as_timecodes)
         return {"FINISHED"}
 #end PrintFountain
+
+class MoveFountainScript(bpy.types.Operator):
+    bl_idname="scene.move_fountain_script"
+    bl_label="Move cursor in fountain script"
+
+    @classmethod
+    def poll(self, context):
+        return context.scene.fountain.script_line > 1
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        if context.scene.fountain.script_line < 0:
+            return {"FINISHED"}
+
+        #t = bpy.context.space_data.text
+        #script = context.scene.fountain.get_script()
+
+        for window in bpy.context.window_manager.windows:
+            screen = window.screen
+
+            for area in screen.areas:
+                if area.type == 'TEXT_EDITOR':
+                    for region in area.regions:
+                        if region.type == "WINDOW":
+                            #space_data = area.spaces.active
+                            #t = space_data.text
+                            override = context.copy()
+                            override['window'] = window
+                            override['screen'] = screen
+                            override['area'] =  area
+                            override['region'] = region
+                            override['edit_text'] = context.scene.fountain.get_script()
+                            bpy.ops.text.jump(override, line=context.scene.fountain.script_line)
+                            bpy.ops.text.move(override, type='LINE_BEGIN')
+                    break
+
+        return {"FINISHED"}
+#end MoveFountainScript
 
 class CleanScript(bpy.types.Operator):
     bl_idname="scene.clean_fountain_script"
