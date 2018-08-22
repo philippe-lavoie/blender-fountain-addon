@@ -4,7 +4,7 @@
 
 This add-on allows Blender to use [Fountain](https://fountain.io/) to describe a storyboard or a screenplay if you prefer. 
 
-[[https://github.com/philippe-lavoie/blender-fountain-addon/blob/master/Screenshot.png]]
+!()[https://github.com/philippe-lavoie/blender-fountain-addon/blob/master/Screenshot.png]
 
 ## Motivation
 
