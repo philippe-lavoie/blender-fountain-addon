@@ -2,7 +2,33 @@
 
 ## About
 
-This add-on allows Blender to use [Fountain](https://fountain.io/) to describe the storyboard or screenplay if you prefer.
+This add-on allows Blender to use [Fountain](https://fountain.io/) to describe the storyboard or screenplay if you prefer. 
+
+## Motivation
+
+Storyboarding is hard. Inside Blender, we can use grease pencil to help draw the animation. However, a script must start
+from somewhere and that's where a good fountain script can help you out. It's a simple markup language that allows
+you to quickly show actions and dialogues for a screen play scene. Something like
+
+```
+EXT. BRICK'S PATIO - DAY
+
+A gorgeous day.  The sun is shining.  But BRICK BRADDOCK, retired police detective, is sitting quietly, contemplating -- something.
+
+The SCREEN DOOR slides open and DICK STEEL, his former partner and fellow retiree, emerges with two cold beers.
+
+STEEL
+Beer's ready!
+
+BRICK
+Are they cold?
+```
+
+In turn, this simple text can be used to generate a PDF. The later requires an application. You can browse the (Fountain apps)[https://fountain.io/apps] page for a list of those. Personnaly, I find that [CinemVision Fountain Editor](http://cinemavision.com/ftneditor) does a very good job, is full featured and it's free. 
+
+In the source, there is a fountain script and the resulting PDF.
+
+Once you're happy with the script, use this plugin and start to add the grease pencil elements to get your scene to come to life. The source contains an example blend file with a really bad storyboard in grease pencil. I'm not exagerating, it's bad... Stil, if you import the script with the addon and do play (make sure to click on show information) you'll quickly see the value of mixing fountain scripts and Blender.
 
 ## Installation
 
