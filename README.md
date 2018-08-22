@@ -4,9 +4,19 @@
 
 This add-on allows Blender to use [Fountain](https://fountain.io/) to describe the storyboard or screenplay if you prefer.
 
+## Installation
+
+Do the usual install from disk by specifying that you want to install from disk. You can grab the release from [GitHub](https://github.com/philippe-lavoie/blender-fountain-addon/releases).
+
+- In File / User Preferences, select add-ons
+- Click on "Install Add-on from file"
+- Save user settings
+- The addon is inside the Animation tab of the toolbar
+
+
 ## Features
 
-This add-on allows you to:
+This animation add-on allows you to:
 - Import a fountain script
     - This adds markers to elements inside the script like
         - Section headers
@@ -33,7 +43,7 @@ This add-on allows you to:
 ## Usage
 
 + In the text editor, open or write a fountain script.
-+ In the fountain add-on, select the script
++ In the fountain add-on under the animation tab, select the script
 + Click import
 + Notice that markers are added to the timeline
     - Default duration is 0.5 seconds per word and 1 second per action phrase.

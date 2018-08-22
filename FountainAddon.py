@@ -2,7 +2,7 @@ bl_info = \
     {
         "name" : "Fountain Script",
         "author" : "Philippe Lavoie <philippe.lavoie@gmail.com>",
-        "version" : (1, 0, 0),
+        "version" : (0, 9, 1),
         "blender" : (2, 5, 7),
         "location" : "View 3D > Tools > Animation",
         "description" :
@@ -449,9 +449,8 @@ class FountainPanel(bpy.types.Panel):
             column.prop(item, "content")
             column.prop(item, "target")
             column.prop(item, "line_number")
-            if item.frame != context.scene.frame_current:
-                bpy.context.scene.frame_set(item.frame)
             if fountain.script_line != item.line_number:
+                bpy.context.scene.frame_set(item.frame)
                 fountain.script_line = item.line_number
                 bpy.ops.scene.move_fountain_script('EXEC_DEFAULT')
             
