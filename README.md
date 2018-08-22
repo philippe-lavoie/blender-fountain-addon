@@ -4,6 +4,8 @@
 
 This add-on allows Blender to use [Fountain](https://fountain.io/) to describe a storyboard or a screenplay if you prefer. 
 
+[[https://github.com/philippe-lavoie/blender-fountain-addon/blob/master/Screenshot.png]]
+
 ## Motivation
 
 Storyboarding is hard. Inside Blender, we can use grease pencil to help draw the animation. However, a script must start
@@ -24,11 +26,11 @@ BRICK
 Are they cold?
 ```
 
-In turn, this simple text can be used to generate a PDF. The later requires an application. You can browse the [Fountain apps](https://fountain.io/apps) page for a list of those. Personnaly, I find that [CinemaVision Fountain Editor](http://cinemavision.com/ftneditor) does a very good job, is full featured and it's free. 
+In turn, this simple text can be used to generate a PDF. The later requires an application. You can browse the [Fountain apps](https://fountain.io/apps) page for a list of those. Personally, I find that [CinemaVision Fountain Editor](http://cinemavision.com/ftneditor) does a very good job, is full featured and it's free. 
 
 In the source, there is a fountain script and the resulting PDF.
 
-Once you're happy with the script, use this plugin and start to add the grease pencil elements to get your scene to come to life. The source contains an example blend file with a really bad storyboard in grease pencil. I'm not exagerating, it's bad... Still, if you import the script with the addon and do play (make sure to click on show information) you'll quickly see the value of mixing fountain scripts and Blender.
+Once you're happy with the script, use this plugin and start to add the grease pencil elements to get your scene to come to life. The source contains an example blend file with a really bad storyboard in grease pencil. I'm not exaggerating, it's bad... Still, if you import the script with the add-on and do play (make sure to click on show information) you'll quickly see the value of mixing fountain scripts and Blender.
 
 ## Installation
 
@@ -76,8 +78,10 @@ This animation add-on allows you to:
 + Click on a scene element
     - Notice the timeline moves
     - Notice the text cursor is moved
-+ Enable the 'show scene information' to view onscreen information about the scene.
++ Enable the 'show scene information' to view onscreen information about the scene inside the 3D viewport.
 + Add greasepencil or other elements to complete your story board
 
+## Disclaimer
 
+It's my first add-on for Blender, please let me know how to improve it. 
 
