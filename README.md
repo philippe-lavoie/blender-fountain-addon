@@ -1,8 +1,8 @@
-# Fountain script add-on
+# Fountain script add-on for Blender
 
 ## About
 
-This add-on allows Blender to use [Fountain](https://fountain.io/) to describe the storyboard or screenplay if you prefer. 
+This add-on allows Blender to use [Fountain](https://fountain.io/) to describe a storyboard or a screenplay if you prefer. 
 
 ## Motivation
 
@@ -24,11 +24,11 @@ BRICK
 Are they cold?
 ```
 
-In turn, this simple text can be used to generate a PDF. The later requires an application. You can browse the (Fountain apps)[https://fountain.io/apps] page for a list of those. Personnaly, I find that [CinemVision Fountain Editor](http://cinemavision.com/ftneditor) does a very good job, is full featured and it's free. 
+In turn, this simple text can be used to generate a PDF. The later requires an application. You can browse the [Fountain apps](https://fountain.io/apps) page for a list of those. Personnaly, I find that [CinemaVision Fountain Editor](http://cinemavision.com/ftneditor) does a very good job, is full featured and it's free. 
 
 In the source, there is a fountain script and the resulting PDF.
 
-Once you're happy with the script, use this plugin and start to add the grease pencil elements to get your scene to come to life. The source contains an example blend file with a really bad storyboard in grease pencil. I'm not exagerating, it's bad... Stil, if you import the script with the addon and do play (make sure to click on show information) you'll quickly see the value of mixing fountain scripts and Blender.
+Once you're happy with the script, use this plugin and start to add the grease pencil elements to get your scene to come to life. The source contains an example blend file with a really bad storyboard in grease pencil. I'm not exagerating, it's bad... Still, if you import the script with the addon and do play (make sure to click on show information) you'll quickly see the value of mixing fountain scripts and Blender.
 
 ## Installation
 
