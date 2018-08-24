@@ -36,17 +36,22 @@ from bpy.props import *
 def texts(self, context):
     return [(text.name, text.name, '') for text in bpy.data.texts]
 
-def frameToTime(frame, context, verbose = True):
+def frameToTime(frame, context, format = 'long'):
     render = context.scene.render
     framerate = render.fps / render.fps_base
     time_in_seconds = frame / framerate
+    hours = math.floor(time_in_seconds / 3600.0)
     minutes = math.floor(time_in_seconds / 60.0)
     seconds = time_in_seconds - (minutes * 60)
-    if verbose:
+    if format == 'long':
         if minutes>0:
             return "{:0d} min {:00.2f}sec".format(minutes, seconds)
         else:
             return "{:0.2f} sec".format(seconds)
+    elif format == 'srt':
+        secs = math.floor(seconds)
+        ms = math.floor(1000.0 * (seconds - secs))
+        return "{:02d}:{:02d}:{:02d},{:03d}".format(hours, minutes, secs, ms)
     else:
         return "{:02d}:{:00.2f}".format(minutes, seconds)
 
@@ -136,27 +141,53 @@ def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_w
     return max_size
 
 class DrawingClass:
+
+    # scene_name = StringProperty(default='Scene')
+    # action = StringProperty(default='Action\nSome action')
+    # dialogue = StringProperty(default='Dialogue\nSome dialogue')
+    # marker = StringProperty(default='Marker name')
+    # character = StringProperty(default='Character')
+    # last_frame = IntProperty()
+    # last_index = IntProperty()
+
     def __init__(self, context):
         self.handle = bpy.types.SpaceView3D.draw_handler_add(
                    self.draw_text_callback,(context,),
                    'WINDOW', 'POST_PIXEL')
-        self.scene = "Scene"
+        self.scene_name = "Scene"
         self.action = "Action\naction"
         self.dialogue = "Dialogue\ndialogue"
         self.marker = "MarkerName"
         self.character = ""
-        self.last_frame = -1
+        self.last_frame = -100
         self.last_index = 0
+
+    def start(self, context):
+        if not self.handle:
+            self.handle = bpy.types.SpaceView3D.draw_handler_add(
+                   self.draw_text_callback,(context,),
+                   'WINDOW', 'POST_PIXEL')
+        self.last_frame = -100
+        self.last_index = 0
+        self.draw_text_callback(context)
+
+    def stop(self):
+        if self.handle:
+            bpy.types.SpaceView3D.draw_handler_remove(self.handle, 'WINDOW')
+            self.handle = None
+
+    def __del__(self):
+        self.stop()
 
     def set_content(self, element):
         self.marker = element.name
         self.character = ""
         if element.fountain_type == 'Scene Heading':
-            self.scene = element.content
+            self.scene_name = element.content
             self.action = ""
             self.dialogue = ""
         elif element.fountain_type == 'Transition':
-            self.scene = element.content
+            self.scene_name = element.content
             self.action = "Transition"
         elif element.fountain_type == 'Action':
             self.action = element.content
@@ -184,7 +215,7 @@ class DrawingClass:
         self.last_index = 0
         self.dialogue = ""
         self.action = ""
-        self.scene = ""
+        self.scene_name = ""
         self.marker = ""
         self.character = ""
         for element in [element for element in fountain_collection if element.frame <= frame]:
@@ -193,6 +224,13 @@ class DrawingClass:
         self.last_frame = frame
 
     def draw_text_callback(self, context):
+
+        try:
+            screen_max_characters = context.scene.fountain.max_characters
+        except AttributeError:
+            self.stop()
+            return
+        #screen_max_characters = context.scene.fountain.max_characters
         index = 0
         for area in bpy.context.screen.areas:
             if area.type == 'VIEW_3D':
@@ -224,12 +262,10 @@ class DrawingClass:
         FULLWHITE = (1,1,1,1)
         CR = "\n"
 
-        ps = [(self.scene, WHITE),CR, (self.marker, WHITE)]
+        ps = [(self.scene_name, WHITE),CR, (self.marker, WHITE)]
         x = self.width-20
         y = 60
         label_size = draw_string(x, y, ps, left_align=False, max_width=0.2 * self.width) + 40
-
-        screen_max_characters = context.scene.fountain.max_characters
 
         if self.action:
             ps = []
@@ -286,8 +322,8 @@ class DrawingClass:
             y = 40
             draw_string(x, y, ps, left_align=True, bottom_align=True, max_width= self.width - label_size)            
 
-    def remove_handle(self):
-         bpy.types.SpaceView3D.draw_handler_remove(self.handle, 'WINDOW')
+    #def remove_handle(self):
+    #     bpy.types.SpaceView3D.draw_handler_remove(self.handle, 'WINDOW')
 
 
 
@@ -297,11 +333,27 @@ class FountainProps(PropertyGroup):
         
         return None
 
-    def updateShow(self, context):
+    def set_show_fountain(self,value):
+        ShowFountain.show = value
+        self["show_fountain"] = value
         bpy.ops.scene.show_fountain('EXEC_DEFAULT')
+
+    def get_show_fountain(self):
+        return self["show_fountain"]
+
+    def updateShow(self, context):
+        if ShowFountain.show != self.get_show_fountain():
+            ShowFountain.show = self["show_fountain"]
+            bpy.ops.scene.show_fountain('EXEC_DEFAULT')
+
+    def reset(self):
+        self.show_fountain = False
+        #self.script = ''
+        self.title = ''
+        self.script_line = -1
     
     name = StringProperty(default="Fountain script")
-    show_fountain = BoolProperty(default=False, update = updateShow)
+    show_fountain = BoolProperty(default=False, set = set_show_fountain, get=get_show_fountain)
     script = StringProperty(default='', description='Choose your script')
     scene_texts = EnumProperty(name = 'Available Texts', items = texts, update = update_text_list,
                                          description = 'Available Texts.')
@@ -376,6 +428,12 @@ class FountainPanel(bpy.types.Panel):
 #        if not context.scene.fountain_markers:
 #            scene.synch_markers(context)
 
+    def invoke(self, context):
+        scn = context.scene
+        fountain = scn.fountain
+        fountain.updateShow(context)
+        return {'FINISHED'}
+
     def draw(self, context):
         scn = context.scene
         fountain = scn.fountain
@@ -383,7 +441,10 @@ class FountainPanel(bpy.types.Panel):
         row = self.layout.row()
         column = row.column(align=True)
         row = column.row(align=True)
-        row.prop(fountain, 'show_fountain', text='Show Scene information')
+        showLabel = 'Show Fountain'
+        if fountain.show_fountain:
+            showLabel = 'Hide Fountain'
+        row.prop(fountain, 'show_fountain', text="Show Fountain")
         row.prop(fountain, 'max_characters', text='Characters per line')
         
         row = column.row(align = True) 
@@ -461,6 +522,7 @@ class ShowFountain(bpy.types.Operator):
     bl_label="Show fountain markers"
     
     drawing_class = None
+    show = False
     
     @classmethod
     def poll(self, context):
@@ -471,27 +533,45 @@ class ShowFountain(bpy.types.Operator):
 
     def execute(self, context):
         scn = context.scene
-        fountain = scn.fountain
-        
-        if fountain.show_fountain:
-            if ShowFountain.drawing_class is None:
-                ShowFountain.drawing_class = DrawingClass(context)
-        else:
+        try:
+            fountain = scn.fountain
+        except AttributeError:
             if ShowFountain.drawing_class is not None:
-                ShowFountain.drawing_class.remove_handle()
-                ShowFountain.drawing_class = None
+                ShowFountain.drawing_class.stop()
+        else:
+            #ShowFountain.show = fountain.show_fountain
+            if ShowFountain.show:
+                if ShowFountain.drawing_class is None:
+                    ShowFountain.drawing_class = DrawingClass(context)
+                ShowFountain.drawing_class.start(context)
+            else:
+                if ShowFountain.drawing_class is not None:
+                    ShowFountain.drawing_class.stop()
+            
+            for window in bpy.context.window_manager.windows:
+                screen = window.screen
+
+                for area in screen.areas:
+                    if area.type == 'VIEW_3D':
+                        area.tag_redraw()
+                        break
+
         return {"FINISHED"}
     
 class PrintFountain(bpy.types.Operator):
     bl_idname="scene.print_fountain"
     bl_label="Print Marker's timing"
 
+    filepath = bpy.props.StringProperty(default='youtube.srt',subtype="FILE_PATH")
+
     @classmethod
     def poll(self, context):
         return True
 
     def invoke(self, context, event):
-        return self.execute(context)
+        #return self.execute(context)
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
         if len(context.scene.timeline_markers) == 0:
@@ -502,6 +582,7 @@ class PrintFountain(bpy.types.Operator):
         fountain = context.scene.fountain
 
         markers_as_timecodes = ""
+        sub_index=1
         for marker in sorted_markers:
             if marker.fountain_type == 'Scene Heading' and not fountain.marker_on_scene:
                 continue
@@ -514,9 +595,17 @@ class PrintFountain(bpy.types.Operator):
             if marker.fountain_type == 'Transition' and not fountain.marker_on_transition:
                 continue
             
-            result = frameToTime(marker.frame, context, verbose=False) + " " + marker.content
+            content = marker.content
+            if marker.fountain_type == 'Dialogue':
+                content = marker.target + ": " + marker.content
+
+            start = frameToTime(marker.frame, context, format='srt')
+            end = frameToTime(marker.frame + marker.duration, context, format = 'srt')
+            result = "%d\n%s --> %s\n%s\n"%(sub_index, start, end, content.replace('\\n','\n'))
             markers_as_timecodes += result + "\n"
-        print(markers_as_timecodes)
+            sub_index += 1
+        file = open(self.filepath, 'w')
+        file.write(markers_as_timecodes)        
         return {"FINISHED"}
 #end PrintFountain
 
@@ -631,6 +720,8 @@ class ClearFountain(bpy.types.Operator):
     def execute(self, context):
         context.scene.fountain_markers.clear()
         context.scene.timeline_markers.clear()
+        context.scene.fountain.reset()
+        context.scene.fountain_markers_index = 0
         return {"FINISHED"}
 #end UpdateScript
 
@@ -931,8 +1022,11 @@ def register():
     bpy.types.Scene.fountain = bpy.props.PointerProperty(type=FountainProps)
     bpy.types.Scene.fountain_markers = bpy.props.CollectionProperty(type=FountainMarker)
     bpy.types.Scene.fountain_markers_index = bpy.props.IntProperty()
+    #bpy.ops.scene.show_fountain('EXEC_DEFAULT')
+
   
 def unregister():
+    ShowFountain.drawing_class = None
     bpy.utils.unregister_module(__name__)
     del bpy.types.Scene.fountain_title
     del bpy.types.Scene.fountain_markers
