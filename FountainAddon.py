@@ -2,7 +2,7 @@ bl_info = \
     {
         "name" : "Fountain Script",
         "author" : "Philippe Lavoie <philippe.lavoie@gmail.com>",
-        "version" : (0, 9, 2),
+        "version" : (0, 9, 3),
         "blender" : (2, 5, 7),
         "location" : "View 3D > Tools > Animation",
         "description" :
@@ -395,7 +395,7 @@ class FountainMarker(bpy.types.PropertyGroup):
         self.original_name = self.name
         return
     
-    name = bpy.props.StringProperty(update=updateName)
+    name = bpy.props.StringProperty()
     original_name = bpy.props.StringProperty()
     frame = bpy.props.IntProperty()
     duration = bpy.props.IntProperty(default=0, min=0)
@@ -528,6 +528,17 @@ class ShowFountain(bpy.types.Operator):
     def poll(self, context):
         return True
     
+    def modal(self, context, event):
+        for window in bpy.context.window_manager.windows:
+            screen = window.screen
+
+            for area in screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
+                    return {'PASS_THROUGH'}
+
+        return {'CANCELLED'}
+
     def invoke(self, context, event):
         return self.execute(context)
 
@@ -538,6 +549,7 @@ class ShowFountain(bpy.types.Operator):
         except AttributeError:
             if ShowFountain.drawing_class is not None:
                 ShowFountain.drawing_class.stop()
+            return {'CANCELLED'}
         else:
             #ShowFountain.show = fountain.show_fountain
             if ShowFountain.show:
@@ -556,7 +568,7 @@ class ShowFountain(bpy.types.Operator):
                         area.tag_redraw()
                         break
 
-        return {"FINISHED"}
+        return {'RUNNING_MODAL'}
     
 class PrintFountain(bpy.types.Operator):
     bl_idname="scene.print_fountain"
@@ -595,6 +607,10 @@ class PrintFountain(bpy.types.Operator):
             if marker.fountain_type == 'Transition' and not fountain.marker_on_transition:
                 continue
             
+            # The SRT format does not allow 0 durations
+            if marker.duration <= 0:
+                continue
+
             content = marker.content
             if marker.fountain_type == 'Dialogue':
                 content = marker.target + ": " + marker.content
