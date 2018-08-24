@@ -633,7 +633,9 @@ class PrintFountain(bpy.types.Operator):
 
         markers_as_timecodes = ""
         sub_index=1
+        marker_index = -1
         for marker in sorted_markers:
+            marker_index += 1
             if marker.fountain_type == 'Scene Heading' and not fountain.marker_on_scene:
                 continue
             if marker.fountain_type == 'Section Heading' and not fountain.marker_on_section:
@@ -652,6 +654,12 @@ class PrintFountain(bpy.types.Operator):
             content = marker.content
             if marker.fountain_type == 'Dialogue':
                 content = marker.target + ": " + marker.content
+                if marker.is_dual_dialogue:
+                    if sorted_markers[marker_index-1].is_dual_dialogue:
+                        content = "%s: %s\n%s: %s"%(sorted_markers[marker_index-1].target, sorted_markers[marker_index-1].content, marker.target, marker.content)
+                        marker.duration = max(marker.duration, sorted_markers[marker_index-1].duration)
+                    else:
+                        continue
 
             start = frameToTime(marker.frame, context, format='srt')
             end = frameToTime(marker.frame + marker.duration, context, format = 'srt')
