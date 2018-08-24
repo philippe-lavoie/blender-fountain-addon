@@ -60,7 +60,7 @@ def stringFits(pstr, max_width):
     text_width, text_height = blf.dimensions(font_id, pstr)
     return text_width < max_width
 
-def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_width=0.7):
+def draw_string(x, y, packed_strings, horizontal_align='left', bottom_align=False, max_width=0.7):
     font_id = 0
     blf.size(font_id, 14, 72) 
     x_offset = 0
@@ -82,35 +82,13 @@ def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_w
 
     line_widths = []
     index = 0
-    if not left_align:
+    if horizontal_align !='left':
         line_width=0
         for command in packed_strings:
             if len(command) == 2:
                 pstr, pcol = command
                 text_width, text_height = blf.dimensions(font_id, pstr)
                 line_width += text_width
-                # print("max: " + str(max_width) + "/" + str(text_width) + "/" + str(line_width) + " : " + pstr)
-                # if line_width > max_width:
-                #     previous_width = line_width - text_width
-                #     if previous_width <= 0:
-                #         previous_width = 0    
-                #     split_index = int(len(pstr) * (1.0 - ((text_width - previous_width - max_width) / max_width)))
-                #     print('split at ' + str(split_index))
-                #     split_index = pstr.rfind(' ', 0, split_index)
-                #     if split_index > 0:
-                #         new_pack = packed_strings[:index]
-                #         new_pack.append((pstr[:split_index], pcol))
-                #         new_pack.append( '\n')
-                #         if len(packed_strings) <= index:
-                #             next_command = new_pack[index+1]
-                #             if len(next_command) == 2:
-                #                 n_pstr, pcol = next_command
-                #                 new_pack.append( (pstr[split_index:] + n_pstr, pcol) )
-                #                 if len(packed_strings) <= index + 2:
-                #                     new_pack.append(packed_strings[index+2:])
-                #         else:
-                #             new_pack.append((pstr[split_index+1:], pcol))
-                #         draw_string(x,y,new_pack, left_align=left_align, bottom_align=bottom_align, max_width=max_width)
             else:               
                 while len(line_widths) <= index:
                     line_widths.append(line_width)
@@ -122,8 +100,10 @@ def draw_string(x, y, packed_strings, left_align=True, bottom_align=False, max_w
     index=0
     for command in packed_strings:
         line_width=0
-        if not left_align:
+        if horizontal_align =='right':
             line_width=line_widths[index]
+        elif horizontal_align =='middle':
+            line_width=line_widths[index] // 2
                         
         if len(command) == 2:
             pstr, pcol = command
@@ -150,6 +130,7 @@ class DrawingClass:
     # last_frame = IntProperty()
     # last_index = IntProperty()
 
+
     def __init__(self, context):
         self.handle = bpy.types.SpaceView3D.draw_handler_add(
                    self.draw_text_callback,(context,),
@@ -157,10 +138,22 @@ class DrawingClass:
         self.scene_name = "Scene"
         self.action = "Action\naction"
         self.dialogue = "Dialogue\ndialogue"
+        self.dialogues = []
         self.marker = "MarkerName"
         self.character = ""
+        self.characters = []
         self.last_frame = -100
         self.last_index = 0
+        self.RED = (1, 0, 0, 1)
+        self.GREEN = (0, 1, 0, 1)
+        self.BLUE = (0, 0, 1, 1)
+        self.CYAN = (0, 1, 1, 1)
+        self.MAGENTA = (1,0,1,1)
+        self.YELLOW = (1, 1, 0, 1)
+        self.ORANGE = (1, 0.8, 0, 1)
+        self.WHITE = (1,1,1,0.8)
+        self.FULLWHITE = (1,1,1,1)
+        self.CR = "\n"
 
     def start(self, context):
         if not self.handle:
@@ -186,15 +179,34 @@ class DrawingClass:
             self.scene_name = element.content
             self.action = ""
             self.dialogue = ""
+            self.dialogues = None
+            self.characters = None
         elif element.fountain_type == 'Transition':
             self.scene_name = element.content
+            self.dialogue = ''
             self.action = "Transition"
+            self.dialogues = None
+            self.characters = None
         elif element.fountain_type == 'Action':
             self.action = element.content
             self.dialogue = ""
+            self.dialogues = None
+            self.characters = None
         elif element.fountain_type == 'Dialogue':
-            self.dialogue = element.content
-            self.character = element.target
+            if element.is_dual_dialogue:
+                self.dialogue = ''
+                self.character = ''
+                if not self.dialogues:
+                    self.dialogues = [element.content]
+                    self.characters = [element.target]
+                else:
+                    self.dialogues.append(element.content)
+                    self.characters.append(element.target)
+            else:
+                self.dialogue = element.content
+                self.character = element.target
+                self.dialogues = None
+                self.characters = None
 
     def updateFountainElements(self, context):
         frame = context.scene.frame_current
@@ -222,6 +234,30 @@ class DrawingClass:
             self.last_index += 1
             self.set_content(element)
         self.last_frame = frame
+
+    def get_dialogue(self, character, dialogue, max_width, max_characters):
+        ps = []
+        ps.append( (character, self.ORANGE) )
+        ps.append( self.CR )
+        for line in dialogue.splitlines():
+            while len(line) > max_characters or not stringFits( line, max_width):
+                screen_max_characters = max_characters
+                while not stringFits(line[:screen_max_characters], max_width):
+                    split_index = line.rfind(' ', 0, screen_max_characters)
+                    if split_index <= 0:
+                        break
+                    screen_max_characters = split_index
+
+                split_index = line.rfind(' ', 0, screen_max_characters)
+                if split_index > 0:
+                    ps.append( (line[:split_index], self.YELLOW))
+                    ps.append( self.CR )
+                    line = line[split_index+1:]    
+                else:
+                    break
+            ps.append( (line, self.YELLOW))
+            ps.append( self.CR )
+        return ps
 
     def draw_text_callback(self, context):
 
@@ -251,21 +287,11 @@ class DrawingClass:
 
         x = 60
         y = 60
-        RED = (1, 0, 0, 1)
-        GREEN = (0, 1, 0, 1)
-        BLUE = (0, 0, 1, 1)
-        CYAN = (0, 1, 1, 1)
-        MAGENTA = (1,0,1,1)
-        YELLOW = (1, 1, 0, 1)
-        ORANGE = (1, 0.8, 0, 1)
-        WHITE = (1,1,1,0.8)
-        FULLWHITE = (1,1,1,1)
-        CR = "\n"
 
-        ps = [(self.scene_name, WHITE),CR, (self.marker, WHITE)]
+        ps = [(self.scene_name, self.WHITE),self.CR, (self.marker, self.WHITE)]
         x = self.width-20
         y = 60
-        label_size = draw_string(x, y, ps, left_align=False, max_width=0.2 * self.width) + 40
+        label_size = draw_string(x, y, ps, horizontal_align='right', max_width=0.2 * self.width) + 40
 
         if self.action:
             ps = []
@@ -280,47 +306,59 @@ class DrawingClass:
 
                     split_index = line.rfind(' ', 0, screen_max_characters)
                     if split_index > 0:
-                        ps.append( (line[:split_index], CYAN))
-                        ps.append( CR )
+                        ps.append( (line[:split_index], self.CYAN))
+                        ps.append( self.CR )
                         line = line[split_index+1:]    
                     else:
                         break
                 if line == 'Transition':
-                    ps.append( (line, MAGENTA))
+                    ps.append( (line, self.MAGENTA))
                 else:
-                    ps.append( (line, CYAN))
-                ps.append( CR )
-            x = 20
+                    ps.append( (line, self.CYAN))
+                ps.append( self.CR )
+            x = self.width / 2
             y = self.height-70
-            draw_string(x, y, ps, left_align=True, bottom_align=False, max_width= self.width - 40)
+            draw_string(x, y, ps, horizontal_align='middle', bottom_align=False, max_width= self.width - 40)
 
         if self.dialogue:
-            ps = []
-            ps.append( (self.character + " : ", ORANGE) )
-            max_characters = context.scene.fountain.max_characters - len(self.character) - 3
-            for line in self.dialogue.splitlines():
-                while len(line) > max_characters or not stringFits(self.character + " : " + line, self.width - label_size):
-                    screen_max_characters = max_characters
-                    while not stringFits(self.character + " : " + line[:screen_max_characters], self.width - label_size):
-                        split_index = line.rfind(' ', 0, screen_max_characters)
-                        if split_index <= 0:
-                            break
-                        screen_max_characters = split_index
+            ps = self.get_dialogue(self.character, self.dialogue, self.width - label_size * 2, context.scene.fountain.max_characters)
+            # ps.append( (self.character, ORANGE) )
+            # ps.append( CR )
+            # max_characters = context.scene.fountain.max_characters 
+            # for line in self.dialogue.splitlines():
+            #     while len(line) > max_characters or not stringFits( line, self.width - label_size * 2):
+            #         screen_max_characters = max_characters
+            #         while not stringFits(line[:screen_max_characters], self.width - label_size * 2):
+            #             split_index = line.rfind(' ', 0, screen_max_characters)
+            #             if split_index <= 0:
+            #                 break
+            #             screen_max_characters = split_index
 
-                    split_index = line.rfind(' ', 0, screen_max_characters)
-                    if split_index > 0:
-                        ps.append( (line[:split_index], YELLOW))
-                        ps.append( CR )
-                        ps.append( (' ' * (len(self.character) + 3), YELLOW))
-                        line = line[split_index+1:]    
-                    else:
-                        break
-                ps.append( (line, YELLOW))
-                ps.append( CR )
+            #         split_index = line.rfind(' ', 0, screen_max_characters)
+            #         if split_index > 0:
+            #             ps.append( (line[:split_index], YELLOW))
+            #             ps.append( CR )
+            #             line = line[split_index+1:]    
+            #         else:
+            #             break
+            #     ps.append( (line, YELLOW))
+            #     ps.append( CR )
 
-            x = 60
+            x = self.width / 2
             y = 40
-            draw_string(x, y, ps, left_align=True, bottom_align=True, max_width= self.width - label_size)            
+            draw_string(x, y, ps, horizontal_align='middle', bottom_align=True, max_width= self.width - label_size)
+
+        if self.dialogues:
+            ps = self.get_dialogue(self.characters[0], self.dialogues[0], (self.width / 2) - (label_size * 2), context.scene.fountain.max_characters)
+            x = self.width / 4
+            y = 40
+            draw_string(x, y, ps, horizontal_align='middle', bottom_align=True, max_width= self.width - label_size)
+
+            ps = self.get_dialogue(self.characters[1], self.dialogues[1], (self.width / 2) - (label_size * 2), context.scene.fountain.max_characters)
+            x = 3 * self.width / 4
+            y = 40
+            draw_string(x, y, ps, horizontal_align='middle', bottom_align=True, max_width= self.width - label_size)
+
 
     #def remove_handle(self):
     #     bpy.types.SpaceView3D.draw_handler_remove(self.handle, 'WINDOW')
@@ -805,6 +843,7 @@ class ImportFountain(bpy.types.Operator):
         scene_info = ""
         character = ""
         is_dual_dialogue = False
+        was_dual_dialogue = False
         for fc, f in enumerate(F.elements):
             delta = 0
             element_in_scene += 1
@@ -873,15 +912,19 @@ class ImportFountain(bpy.types.Operator):
                 name += "_D" + str(dialogue_in_scene)
                 target = character
             elif f.element_type == 'Action':
+                is_dual_dialogue = False
                 action_in_scene += 1
                 delta += int(1.0 * framerate * (f.element_text.count('.') + 1))
                 name += "_A" + str(action_in_scene)
                 target = scene_info
             elif f.element_type == 'Scene Heading':
+                is_dual_dialogue = False
                 target = scene_number
             elif f.element_type == 'Section Heading':
+                is_dual_dialogue = False
                 target = scene_number
             elif f.element_type == 'Transition':
+                is_dual_dialogue = False
                 target = ""
                 transition_in_scene += 1
                 name += "_T" + str(transition_in_scene)
@@ -917,13 +960,22 @@ class ImportFountain(bpy.types.Operator):
 
             frame += delta
 
+            if is_dual_dialogue:
+                print('dual' + element.content)
+
+            if is_dual_dialogue and was_dual_dialogue:
+                element.frame = fountain_collection[-2].frame
+                delta_max = max(element.duration, fountain_collection[-2].duration)
+                frame = element.frame + delta_max
+                was_dual_dialogue = False
+            else:
+                was_dual_dialogue = is_dual_dialogue
+
             if name in current_collection:
                 element.frame, element.duration = current_collection[name]
                 frame = element.frame
                 delta = element.duration
 
-            if is_dual_dialogue:
-                element.frame = fountain_collection[-2].frame
 
         
         for f in fountain_collection:
