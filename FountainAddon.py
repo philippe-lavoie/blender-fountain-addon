@@ -2,7 +2,7 @@ bl_info = \
     {
         "name" : "Fountain Script",
         "author" : "Philippe Lavoie <philippe.lavoie@gmail.com>",
-        "version" : (1, 0 ,0),
+        "version" : (1, 0 ,1),
         "blender" : (2, 5, 7),
         "location" : "View 3D > Tools > Animation",
         "description" :
@@ -510,7 +510,7 @@ class FountainPanel(bpy.types.Panel):
         row = self.layout.row()
         column = row.column(align=True)
         row = column.row(align=True)
-        row.operator("scene.print_fountain", text="Print Markers")
+        row.operator("scene.print_fountain", text="Export to SRT")
         row.operator("scene.synch_markers", text="Sync markers")
 
         row = self.layout.row()
