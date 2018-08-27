@@ -207,13 +207,13 @@ class DrawingClass:
 
         fountain_collection = sorted(context.scene.fountain_markers, key  = lambda item : item.frame)
 
-        if self.last_frame < frame:
-            range = fountain_collection[self.last_index:]
-            for element in [element for element in range if element.frame <= frame]:
-                self.last_index += 1
-                self.set_content(element)
-            self.last_frame = frame
-            return
+        # if self.last_frame < frame:
+        #     range = fountain_collection[self.last_index:]
+        #     for element in [element for element in range if element.frame <= frame and element.frame_end >= frame]:
+        #         self.last_index += 1
+        #         self.set_content(element)
+        #     self.last_frame = frame
+        #     return
         
         self.last_index = 0
         self.dialogue = ""
@@ -221,7 +221,7 @@ class DrawingClass:
         self.scene_name = ""
         self.marker = ""
         self.character = ""
-        for element in [element for element in fountain_collection if element.frame <= frame]:
+        for element in [element for element in fountain_collection if element.frame <= frame and element.frame_end > frame]:
             self.last_index += 1
             self.set_content(element)
         self.last_frame = frame
@@ -401,6 +401,7 @@ class FountainMarker(bpy.types.PropertyGroup):
     original_name = bpy.props.StringProperty()
     frame = bpy.props.IntProperty()
     duration = bpy.props.IntProperty(default=0, min=0)
+    frame_end = bpy.props.IntProperty()
 
     fountain_type = bpy.props.EnumProperty(
                     name='Foutain element type',
@@ -626,7 +627,7 @@ class PrintFountain(bpy.types.Operator):
                         continue
 
             start = frameToTime(marker.frame, context, format='srt')
-            end = frameToTime(marker.frame + marker.duration, context, format = 'srt')
+            end = frameToTime(marker.frame_end, context, format = 'srt')
             result = "%d\n%s --> %s\n%s\n"%(sub_index, start, end, content.replace('\\n','\n'))
             markers_as_timecodes += result + "\n"
             sub_index += 1
@@ -945,10 +946,20 @@ class ImportFountain(bpy.types.Operator):
                 frame = element.frame
                 delta = element.duration
 
-
-        
+        f_index= -1
         for f in fountain_collection:
+            f_index += 1
             context.scene.timeline_markers.new(f.name, f.frame)
+            if f.duration > 0:
+                f.frame_end = f.frame + f.duration
+            else:
+                if f.fountain_type == 'Scene Heading':
+                    #Find next Scene Heading to determine the duration / end time
+                    for other in fountain_collection[f_index+1:]:
+                        if other.fountain_type == 'Scene Heading':
+                            f.duration = other.frame - f.frame 
+                            f.frame_end = other.frame 
+                            break
 
         context.scene.frame_end = frame
 
