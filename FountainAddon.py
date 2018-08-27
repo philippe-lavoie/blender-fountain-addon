@@ -122,15 +122,6 @@ def draw_string(x, y, packed_strings, horizontal_align='left', bottom_align=Fals
 
 class DrawingClass:
 
-    # scene_name = StringProperty(default='Scene')
-    # action = StringProperty(default='Action\nSome action')
-    # dialogue = StringProperty(default='Dialogue\nSome dialogue')
-    # marker = StringProperty(default='Marker name')
-    # character = StringProperty(default='Character')
-    # last_frame = IntProperty()
-    # last_index = IntProperty()
-
-
     def __init__(self, context):
         self.handle = bpy.types.SpaceView3D.draw_handler_add(
                    self.draw_text_callback,(context,),
@@ -260,13 +251,14 @@ class DrawingClass:
         return ps
 
     def draw_text_callback(self, context):
-
         try:
-            screen_max_characters = context.scene.fountain.max_characters
+            if not bpy.context.scene.fountain.show_fountain:
+                return
         except AttributeError:
-            self.stop()
+            #self.stop()
             return
-        #screen_max_characters = context.scene.fountain.max_characters
+
+        screen_max_characters = bpy.context.scene.fountain.max_characters
         index = 0
         for area in bpy.context.screen.areas:
             if area.type == 'VIEW_3D':
@@ -283,7 +275,8 @@ class DrawingClass:
         if self.width<200 or self.height < 200:
             return
 
-        self.updateFountainElements(context)
+
+        self.updateFountainElements(bpy.context)
 
         x = 60
         y = 60
@@ -297,7 +290,7 @@ class DrawingClass:
             ps = []
             for line in self.action.splitlines():
                 while len(line) > screen_max_characters or not stringFits(line, self.width - 40):
-                    screen_max_characters = context.scene.fountain.max_characters
+                    screen_max_characters = bpy.context.scene.fountain.max_characters
                     while not stringFits(line[:screen_max_characters], self.width - 40):
                         split_index = line.rfind(' ', 0, screen_max_characters)
                         if split_index <= 0:
@@ -321,48 +314,21 @@ class DrawingClass:
             draw_string(x, y, ps, horizontal_align='middle', bottom_align=False, max_width= self.width - 40)
 
         if self.dialogue:
-            ps = self.get_dialogue(self.character, self.dialogue, self.width - label_size * 2, context.scene.fountain.max_characters)
-            # ps.append( (self.character, ORANGE) )
-            # ps.append( CR )
-            # max_characters = context.scene.fountain.max_characters 
-            # for line in self.dialogue.splitlines():
-            #     while len(line) > max_characters or not stringFits( line, self.width - label_size * 2):
-            #         screen_max_characters = max_characters
-            #         while not stringFits(line[:screen_max_characters], self.width - label_size * 2):
-            #             split_index = line.rfind(' ', 0, screen_max_characters)
-            #             if split_index <= 0:
-            #                 break
-            #             screen_max_characters = split_index
-
-            #         split_index = line.rfind(' ', 0, screen_max_characters)
-            #         if split_index > 0:
-            #             ps.append( (line[:split_index], YELLOW))
-            #             ps.append( CR )
-            #             line = line[split_index+1:]    
-            #         else:
-            #             break
-            #     ps.append( (line, YELLOW))
-            #     ps.append( CR )
-
+            ps = self.get_dialogue(self.character, self.dialogue, self.width - label_size * 2, bpy.context.scene.fountain.max_characters)
             x = self.width / 2
             y = 40
             draw_string(x, y, ps, horizontal_align='middle', bottom_align=True, max_width= self.width - label_size)
 
         if self.dialogues:
-            ps = self.get_dialogue(self.characters[0], self.dialogues[0], (self.width / 2) - (label_size * 2), context.scene.fountain.max_characters)
+            ps = self.get_dialogue(self.characters[0], self.dialogues[0], (self.width / 2) - (label_size * 2), bpy.context.scene.fountain.max_characters)
             x = self.width / 4
             y = 40
             draw_string(x, y, ps, horizontal_align='middle', bottom_align=True, max_width= self.width - label_size)
 
-            ps = self.get_dialogue(self.characters[1], self.dialogues[1], (self.width / 2) - (label_size * 2), context.scene.fountain.max_characters)
+            ps = self.get_dialogue(self.characters[1], self.dialogues[1], (self.width / 2) - (label_size * 2), bpy.context.scene.fountain.max_characters)
             x = 3 * self.width / 4
             y = 40
             draw_string(x, y, ps, horizontal_align='middle', bottom_align=True, max_width= self.width - label_size)
-
-
-    #def remove_handle(self):
-    #     bpy.types.SpaceView3D.draw_handler_remove(self.handle, 'WINDOW')
-
 
 
 class FountainProps(PropertyGroup):
@@ -385,8 +351,6 @@ class FountainProps(PropertyGroup):
             bpy.ops.scene.show_fountain('EXEC_DEFAULT')
 
     def reset(self):
-        self.show_fountain = False
-        #self.script = ''
         self.title = ''
         self.script_line = -1
     
@@ -442,12 +406,12 @@ class FountainMarker(bpy.types.PropertyGroup):
                     name='Foutain element type',
                     description='The element in the fountain script',
                     items={
-                        ('Section Heading','Section Heading','A section heading'),
-                        ('Comment','Comment','A comment'),
-                        ('Scene Heading','Scene Heading','A scene heading'),
-                        ('Transition','Transition','A transition to a different scene'),
-                        ('Action','Action','An action that should be depicted'),
-                        ('Dialogue','Dialogue','A dialogue from a character'),
+                        ('Section Heading','Section Heading','A section heading',1),
+                        ('Comment','Comment','A comment',2),
+                        ('Scene Heading','Scene Heading','A scene heading',3),
+                        ('Transition','Transition','A transition to a different scene',4),
+                        ('Action','Action','An action that should be depicted',5),
+                        ('Dialogue','Dialogue','A dialogue from a character',6),
                         }
                 )
 
@@ -566,16 +530,16 @@ class ShowFountain(bpy.types.Operator):
     def poll(self, context):
         return True
     
-    def modal(self, context, event):
-        for window in bpy.context.window_manager.windows:
-            screen = window.screen
+    # def modal(self, context, event):
+    #     for window in bpy.context.window_manager.windows:
+    #         screen = window.screen
 
-            for area in screen.areas:
-                if area.type == 'VIEW_3D':
-                    area.tag_redraw()
-                    return {'PASS_THROUGH'}
+    #         for area in screen.areas:
+    #             if area.type == 'VIEW_3D':
+    #                 area.tag_redraw()
+    #                 return {'PASS_THROUGH'}
 
-        return {'CANCELLED'}
+    #     return {'CANCELLED'}
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -589,7 +553,7 @@ class ShowFountain(bpy.types.Operator):
                 ShowFountain.drawing_class.stop()
             return {'CANCELLED'}
         else:
-            #ShowFountain.show = fountain.show_fountain
+            ShowFountain.show = fountain.show_fountain
             if ShowFountain.show:
                 if ShowFountain.drawing_class is None:
                     ShowFountain.drawing_class = DrawingClass(context)
@@ -606,7 +570,7 @@ class ShowFountain(bpy.types.Operator):
                         area.tag_redraw()
                         break
 
-        return {'RUNNING_MODAL'}
+        return {'FINISHED'}
     
 class PrintFountain(bpy.types.Operator):
     bl_idname="scene.print_fountain"
@@ -968,9 +932,6 @@ class ImportFountain(bpy.types.Operator):
 
             frame += delta
 
-            if is_dual_dialogue:
-                print('dual' + element.content)
-
             if is_dual_dialogue and was_dual_dialogue:
                 element.frame = fountain_collection[-2].frame
                 delta_max = max(element.duration, fountain_collection[-2].duration)
@@ -1099,7 +1060,7 @@ def register():
     bpy.types.Scene.fountain_markers = bpy.props.CollectionProperty(type=FountainMarker)
     bpy.types.Scene.fountain_markers_index = bpy.props.IntProperty()
     #bpy.ops.scene.show_fountain('EXEC_DEFAULT')
-
+    ShowFountain.drawing_class = DrawingClass(bpy.context)
   
 def unregister():
     ShowFountain.drawing_class = None
