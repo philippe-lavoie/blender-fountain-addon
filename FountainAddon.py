@@ -2,7 +2,7 @@ bl_info = \
     {
         "name" : "Fountain Script",
         "author" : "Philippe Lavoie <philippe.lavoie@gmail.com>",
-        "version" : (1, 0 ,1),
+        "version" : (1, 1 , 0),
         "blender" : (2, 5, 7),
         "location" : "View 3D > Tools > Animation",
         "description" :
