@@ -427,6 +427,8 @@ class FountainPanel(bpy.types.Panel):
     bl_category="Animation"
     bl_label="Fountain Markers"
 
+    last_marker = ''
+
 #    def execute(self, context):
 #        if not context.scene.fountain_markers:
 #            scene.synch_markers(context)
@@ -519,6 +521,34 @@ class FountainPanel(bpy.types.Panel):
                 bpy.ops.scene.move_fountain_script('EXEC_DEFAULT')
             
 #end FountainPanel
+
+class CheckMarkers(bpy.types.Operator):
+    bl_idname="scene.check_markers"
+    bl_label="Check fountain markers"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(self, context):
+        print('c')
+        return context.area.type == 'TIMELINE'
+        #return len(context.scene.timeline_markers) > 0
+    
+    def modal(self, context, evt):
+        print('m')
+        if evt.type == 'RIGHTMOUSE':
+            if evt.value == 'PRESS':
+                print('LMB Pressed')
+            elif evt.value == 'RELEASE':
+                print('LMB Released')
+                return {'FINISHED'}
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, evt):
+        print('invoking')
+        #if evt.type == 'RIGHTMOUSE':
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+        #return {'CANCELLED'}
 
 class ShowFountain(bpy.types.Operator):
     bl_idname="scene.show_fountain"
@@ -1060,6 +1090,12 @@ class FountainMarker_UI_Item(bpy.types.UIList):
 
 classes = [FountainProps, FountainPanel, PrintFountain, FountainMarker, SynchFrom, FountainMarker_UI_Item]
 
+from bpy.app.handlers import persistent
+
+@persistent
+def monitor_markers(dummy):
+    bpy.ops.scene.check_markers()
+
 
 def register():
     bpy.utils.register_module(__name__)
@@ -1072,8 +1108,10 @@ def register():
     bpy.types.Scene.fountain_markers_index = bpy.props.IntProperty()
     #bpy.ops.scene.show_fountain('EXEC_DEFAULT')
     ShowFountain.drawing_class = DrawingClass(bpy.context)
+    #bpy.app.handlers.load_post.append(monitor_markers)
   
 def unregister():
+    #bpy.app.handlers.load_post.remove(monitor_markers)
     ShowFountain.drawing_class = None
     bpy.utils.unregister_module(__name__)
     del bpy.types.Scene.fountain_title
