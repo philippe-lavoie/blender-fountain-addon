@@ -1,17 +1,4 @@
-bl_info = \
-    {
-        "name" : "Fountain Script",
-        "author" : "Philippe Lavoie <philippe.lavoie@gmail.com>",
-        "version" : (1, 1 , 0),
-        "blender" : (2, 5, 7),
-        "location" : "View 3D > Tools > Animation",
-        "description" :
-            "Allows you to add fountain script elements as markers with dialogue and action descriptions",
-        "warning" : "",
-        "wiki_url" : "https://github.com/philippe-lavoie/blender-fountain-addon/wiki",
-        "tracker_url" : "https://github.com/philippe-lavoie/blender-fountain-addon.git",
-        "category" : "Animation",
-    }
+
 
 # if "bpy" in locals():
 #     import importlib
@@ -530,7 +517,8 @@ class CheckMarkers(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         print('c')
-        return context.area.type == 'TIMELINE'
+
+        return bpy.context.area.type == 'TIMELINE'
         #return len(context.scene.timeline_markers) > 0
     
     def modal(self, context, evt):
@@ -546,7 +534,7 @@ class CheckMarkers(bpy.types.Operator):
     def invoke(self, context, evt):
         print('invoking')
         #if evt.type == 'RIGHTMOUSE':
-        context.window_manager.modal_handler_add(self)
+        bpy.context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
         #return {'CANCELLED'}
 
@@ -615,6 +603,7 @@ class PrintFountain(bpy.types.Operator):
 
     def invoke(self, context, event):
         #return self.execute(context)
+        #context.window_manager.invoke_props_dialog(self, width=400)
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
@@ -725,6 +714,10 @@ class CleanScript(bpy.types.Operator):
         for line in lines:
             if line[:6] == "[[t&d:":
                 continue
+            if line[:4] == "[[t:":
+                continue
+            if line[:4] == "[[d:":
+                continue
             clean.append(line)
 
         context.scene.fountain.get_script().from_string("\n".join(clean))
@@ -737,21 +730,34 @@ class UpdateScript(bpy.types.Operator):
     bl_idname="scene.update_fountain_script"
     bl_label="Update fountain script"
 
+    write_time = BoolProperty(default=True, description='Write start frame')
+    write_duration = BoolProperty(default=True, description='Write duration')
+
     @classmethod
     def poll(self, context):
         return len(context.scene.fountain.script) > 0 and len(context.scene.fountain_markers) > 0
 
     def invoke(self, context, event):
-        return self.execute(context)
+        context.window_manager.invoke_props_dialog(self, width=500)
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
         body = context.scene.fountain.get_body()
         lines = body.split('\n')
         fountain_collection = context.scene.fountain_markers
         offset = 0
+        if not self.write_time and not self.write_duration:
+            return
+
         for f in fountain_collection:
             line = lines[f.line_number + offset]
             new_line = "[[t&d:" + str(f.frame) + " " + str(f.duration) + "]]"
+
+            if self.write_time and not self.write_duration:
+                new_line = "[[t:" + str(f.frame) + "]]"
+            elif not self.write_time and self.write_duration:
+                new_line = "[[d:" + str(f.duration) + "]]"
+
             if line.startswith("[["):
                 lines[f.line_number + offset] = new_line
             else:
@@ -907,6 +913,14 @@ class ImportFountain(bpy.types.Operator):
                     delta = int(time_and_duration[1])
                     fountain_collection[-1].frame = frame
                     fountain_collection[-1].duration = delta
+                elif f.element_text[0:4] == "t:":
+                    time_and_duration = f.element_text[2:]
+                    frame = int(time_and_duration)
+                    fountain_collection[-1].frame = frame
+                elif f.element_text[0:4] == "d:":
+                    time_and_duration = f.element_text[2:]
+                    delta = int(time_and_duration)
+                    fountain_collection[-1].duration = delta
                 continue
             elif f.element_type == 'Dialogue':
                 dialogue_in_scene += 1
@@ -1008,7 +1022,11 @@ class SynchFrom(bpy.types.Operator):
         return True
 
     def invoke(self, context, event):
-        return self.execute(context)
+        context.window_manager.invoke_props_dialog(self, width=500)
+        return {'RUNNING_MODAL'}
+
+    # def invoke(self, context, event):
+    #     return self.execute(context)
 
     def execute(self, context):
         render = context.scene.render
@@ -1030,15 +1048,16 @@ class SynchFrom(bpy.types.Operator):
         markers_as_timecodes = ""
         framerate = render.fps / render.fps_base
         for marker in sorted_markers:
-            time_in_seconds = marker.frame / framerate
-            minutes = math.floor(time_in_seconds / 60.0)
-            seconds = time_in_seconds - (minutes * 60)
-            result = "{:02d}:{:00.2f}".format(minutes, seconds) + " " + marker.name
+            #time_in_seconds = marker.frame / framerate
+            #minutes = math.floor(time_in_seconds / 60.0)
+            #seconds = time_in_seconds - (minutes * 60)
+            #result = "{:02d}:{:00.2f}".format(minutes, seconds) + " " + marker.name
             done = False
             for fountain_marker in bpy.context.scene.fountain_markers:
                 if fountain_marker.name == marker.name:
                     fountain_marker.frame = marker.frame
-                    fountain_marker.duration = time_in_seconds
+                    fountain_marker.frame_end = fountain_marker.frame + fountain_marker.duration
+                    #fountain_marker.duration = time_in_seconds
                     fountain_marker.marker = marker
                     fountain_marker.original_name = marker.name
                     done = True
@@ -1048,7 +1067,7 @@ class SynchFrom(bpy.types.Operator):
                 new_marker.name = marker.name
                 new_marker.original_name = marker.name
                 new_marker.frame = marker.frame
-                new_marker.duration = time_in_seconds
+                #new_marker.duration = time_in_seconds
                 new_marker.marker = marker
                         
         return {"FINISHED"}
