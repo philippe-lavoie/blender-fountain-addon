@@ -6,6 +6,10 @@ This add-on allows Blender to use [Fountain](https://fountain.io/) to describe a
 
 ![](https://github.com/philippe-lavoie/blender-fountain-addon/blob/master/Screenshot.png)
 
+Watch this [introduction video](https://youtu.be/-UqQrLFVPns) for an overview.
+
+[![](https://i.ytimg.com/vi/-UqQrLFVPns/hqdefault.jpg?sqp=-oaymwEjCPYBEIoBSFryq4qpAxUIARUAAAAAGAElAADIQj0AgKJDeAE=&rs=AOn4CLA3DXebPfxDqb42wsZZ7xxIHLL-NQ)]((https://youtu.be/-UqQrLFVPns)
+
 ## Motivation
 
 Storyboarding is hard. Inside Blender, we can use grease pencil to help draw the animation. However, a script must start
@@ -63,7 +67,7 @@ This animation add-on allows you to:
 - Clean Script
     - This removes the notes to have a cleaner version of the script. Useful when exporting the text.
 - Print markers
-    - prints the time and the marker's content. Useful for youtube (I guess)
+    - prints the time and the marker's content. Useful for YouTube (I guess)
 - Sync markers
     - after you move the markers around make sure that
     fountain is aware of the changes.
