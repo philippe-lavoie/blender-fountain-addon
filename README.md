@@ -8,7 +8,7 @@ This add-on allows Blender to use [Fountain](https://fountain.io/) to describe a
 
 Watch this [introduction video](https://youtu.be/-UqQrLFVPns) for an overview.
 
-[![](https://i.ytimg.com/vi/-UqQrLFVPns/hqdefault.jpg?sqp=-oaymwEjCPYBEIoBSFryq4qpAxUIARUAAAAAGAElAADIQj0AgKJDeAE=&rs=AOn4CLA3DXebPfxDqb42wsZZ7xxIHLL-NQ)]((https://youtu.be/-UqQrLFVPns)
+[![](https://i.ytimg.com/vi/-UqQrLFVPns/hqdefault.jpg)](https://youtu.be/-UqQrLFVPns)
 
 ## Motivation
 

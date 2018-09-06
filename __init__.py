@@ -374,11 +374,11 @@ class FountainProps(PropertyGroup):
     script = StringProperty(default='', description='Choose your script')
     scene_texts = EnumProperty(name = 'Available Texts', items = texts, update = update_text_list,
                                          description = 'Available Texts.')
-    marker_on_scene = BoolProperty(default=True)
-    marker_on_action = BoolProperty(default=True)
-    marker_on_transition = BoolProperty(default=True)
-    marker_on_section = BoolProperty(default=True)
-    marker_on_dialogue = BoolProperty(default=True)
+    # marker_on_scene = BoolProperty(default=True)
+    # marker_on_action = BoolProperty(default=True)
+    # marker_on_transition = BoolProperty(default=True)
+    # marker_on_section = BoolProperty(default=True)
+    # marker_on_dialogue = BoolProperty(default=True)
     title = StringProperty(default="")
     max_characters = IntProperty(default=80, min=10)
     script_line = IntProperty(default=-1)
@@ -483,15 +483,15 @@ class FountainPanel(bpy.types.Panel):
         row.operator("scene.clean_fountain_script", text="Clean Script")
         row.operator("scene.print_fountain", text="Export to SRT")
 
-        if len(fountain.script) > 0:
-            row = self.layout.row()
-            column = row.column(align=True)
-            row = column.row(align=True)
-            row.prop(fountain, 'marker_on_scene', text='Scene')
-            row.prop(fountain, 'marker_on_action', text="Action")            
-            row.prop(fountain, 'marker_on_transition', text="Transition")
-            row.prop(fountain, 'marker_on_section', text="Header")
-            row.prop(fountain, 'marker_on_dialogue', text="Dialogue")
+        # if len(fountain.script) > 0:
+        #     row = self.layout.row()
+        #     column = row.column(align=True)
+        #     row = column.row(align=True)
+        #     row.prop(fountain, 'marker_on_scene', text='Scene')
+        #     row.prop(fountain, 'marker_on_action', text="Action")            
+        #     row.prop(fountain, 'marker_on_transition', text="Transition")
+        #     row.prop(fountain, 'marker_on_section', text="Header")
+        #     row.prop(fountain, 'marker_on_dialogue', text="Dialogue")
 
         row = self.layout.row()
         column = row.column(align=True)
@@ -640,6 +640,11 @@ class PrintFountain(bpy.types.Operator):
     bl_label="Print Marker's timing"
 
     filepath = bpy.props.StringProperty(default='youtube.srt',subtype="FILE_PATH")
+    marker_on_action = BoolProperty(default=True, name='Export Actions')
+    marker_on_dialogue = BoolProperty(default=True, name='Export Dialogues')
+    marker_on_scene = BoolProperty(default=False, name="Export Scenes' start")
+    marker_on_transition = BoolProperty(default=False, name='Export Transitions')
+    marker_on_section = BoolProperty(default=False, name='Export sections')
 
     @classmethod
     def poll(self, context):
@@ -647,8 +652,8 @@ class PrintFountain(bpy.types.Operator):
 
     def invoke(self, context, event):
         #return self.execute(context)
-        #context.window_manager.invoke_props_dialog(self, width=400)
-        context.window_manager.fileselect_add(self)
+        context.window_manager.invoke_props_dialog(self, width=400)
+        #context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
@@ -664,15 +669,15 @@ class PrintFountain(bpy.types.Operator):
         marker_index = -1
         for marker in sorted_markers:
             marker_index += 1
-            if marker.fountain_type == 'Scene Heading' and not fountain.marker_on_scene:
+            if marker.fountain_type == 'Scene Heading' and not self.marker_on_scene:
                 continue
-            if marker.fountain_type == 'Section Heading' and not fountain.marker_on_section:
+            if marker.fountain_type == 'Section Heading' and not self.marker_on_section:
                 continue
-            if marker.fountain_type == 'Action' and not fountain.marker_on_action:
+            if marker.fountain_type == 'Action' and not self.marker_on_action:
                 continue
-            if marker.fountain_type == 'Dialogue' and not fountain.marker_on_dialogue:
+            if marker.fountain_type == 'Dialogue' and not self.marker_on_dialogue:
                 continue
-            if marker.fountain_type == 'Transition' and not fountain.marker_on_transition:
+            if marker.fountain_type == 'Transition' and not self.marker_on_transition:
                 continue
             
             # The SRT format does not allow 0 durations
@@ -836,12 +841,44 @@ class ImportFountain(bpy.types.Operator):
     bl_idname="scene.import_fountain"
     bl_label="Import fountain script"
 
+    def set_spw(self, context):
+        self.sec_per_word = 60.0 / float(self.words_per_min)
+
+    def set_wpm(self, context):
+        self.words_per_min = int(rond(60.0 / self.sec_per_word))
+
+    marker_on_scene = BoolProperty(default=True, name='Create Scene Markers')
+    marker_on_transition = BoolProperty(default=True, name='Create Transition Markers')
+    marker_on_section = BoolProperty(default=True, name="Create Section Markers")
+    marker_on_action = BoolProperty(default=True, name='Create Action Markers')
+    marker_on_dialogue = BoolProperty(default=True, name='Create Dialogue Markers')
+
+    words_per_min = IntProperty(default=160, name="Words per minute", min=50, max=400, update=set_spw)
+    sec_per_word = FloatProperty(default=0.3, name="Sec per word", min=0.05, max=3, update=set_wpm)
+    action_per_phrase = FloatProperty(default=1.0, name="Action length per phrase (sec)", min=0.1, max=20)
+
     @classmethod
     def poll(self, context):
         return len(context.scene.fountain.script) > 0
+    
+    def draw(self, context):
+        scn = context.scene
+        
+        row = self.layout.row()
+        row = row.column(align=True)
+        row.prop(self, 'marker_on_scene', text='Scene Markers')
+        row.prop(self, 'marker_on_transition')
+        row.prop(self, 'marker_on_section')
+        row.prop(self, 'marker_on_action')
+        row.prop(self, 'marker_on_dialogue')
+
+        row.prop(self, 'action_per_phrase')
+        row.prop(self, 'words_per_min')
+        row.prop(self, 'sec_per_word')
 
     def invoke(self, context, event):
-        return self.execute(context)
+        context.window_manager.invoke_props_dialog(self, width=400)
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
         dir = os.path.dirname(bpy.data.filepath)
@@ -969,13 +1006,13 @@ class ImportFountain(bpy.types.Operator):
             elif f.element_type == 'Dialogue':
                 dialogue_in_scene += 1
                 word_count = len(f.element_text.split())
-                delta += int(word_count * framerate * 0.5)
+                delta += int(word_count * framerate * self.sec_per_word)
                 name += "_D" + str(dialogue_in_scene)
                 target = character
             elif f.element_type == 'Action':
                 is_dual_dialogue = False
                 action_in_scene += 1
-                delta += int(1.0 * framerate * (f.element_text.count('.') + 1))
+                delta += int(self.action_per_phrase * framerate * (f.element_text.count('.') + 1))
                 name += "_A" + str(action_in_scene)
                 target = scene_info
             elif f.element_type == 'Scene Heading':
@@ -994,15 +1031,15 @@ class ImportFountain(bpy.types.Operator):
                 continue
 
             skip = False
-            if f.element_type == 'Scene Heading' and not context.scene.fountain.marker_on_scene:
+            if f.element_type == 'Scene Heading' and not self.marker_on_scene:
                 skip = True
-            if f.element_type == 'Section Heading' and not context.scene.fountain.marker_on_section:
+            if f.element_type == 'Section Heading' and not self.marker_on_section:
                 skip = True
-            if f.element_type == 'Action' and not context.scene.fountain.marker_on_action:
+            if f.element_type == 'Action' and not self.marker_on_action:
                 skip = True
-            if f.element_type == 'Dialogue' and not context.scene.fountain.marker_on_dialogue:
+            if f.element_type == 'Dialogue' and not self.marker_on_dialogue:
                 skip = True
-            if f.element_type == 'Transition' and not context.scene.fountain.marker_on_transition:
+            if f.element_type == 'Transition' and not self.marker_on_transition:
                 skip = True
 
             if skip:
