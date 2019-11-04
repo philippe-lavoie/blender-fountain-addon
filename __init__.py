@@ -607,7 +607,7 @@ class FOUNTAIN_PT_panel(bpy.types.Panel):
                         m.select = False
 
             if fountain.script_line != item.line_number:
-                bpy.context.subframe(item.frame)
+                bpy.context.scene.frame_set(item.frame)
                 fountain.script_line = item.line_number
                 bpy.ops.scene.move_fountain_cursor('EXEC_DEFAULT')
 #end FOUNTAIN_PT_panel
@@ -1455,7 +1455,7 @@ class FountainMarker_UL_Item(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(0.3)
+            split = layout.split(factor=0.3)
             split.label(text=str(item.frame))
             split.label(text=item.name)
 
