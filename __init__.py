@@ -20,10 +20,11 @@ import sys
 import bgl
 import blf
 
-#if 'DEBUG_MODE' in sys.argv:
-#    import fountain
-#else:
-#    from . import fountain
+if 'DEBUG_MODE' in sys.argv:
+    import fountain
+else:
+    import fountain
+    #from . import fountain
 
 from bpy.types import Panel, Operator, Menu, PropertyGroup
 from bpy.props import *
@@ -564,7 +565,7 @@ class FOUNTAIN_PT_panel(bpy.types.Panel):
         row = layout.row()
         rows = 2
         row.template_list(
-            "FountainMarker_UL_Item",
+            "FOUNTAINMARKER_UL_Item",
             "fountain_markers_list",
             context.scene,
             "fountain_markers",
@@ -607,13 +608,15 @@ class FOUNTAIN_PT_panel(bpy.types.Panel):
                         m.select = False
 
             if fountain.script_line != item.line_number:
-                bpy.context.scene.frame_set(item.frame)
+                #bpy.context.subframe(item.frame) #error?
+                bpy.context.scene.frame_current = item.frame
+
                 fountain.script_line = item.line_number
                 bpy.ops.scene.move_fountain_cursor('EXEC_DEFAULT')
 #end FOUNTAIN_PT_panel
 
 
-class check_markers(bpy.types.Operator):
+class FOUNTAIN_OT_check_markers(bpy.types.Operator):
     bl_idname = "scene.check_markers"
     bl_label = "Check fountain markers"
     bl_options = {"REGISTER"}
@@ -778,7 +781,7 @@ class FOUNTAIN_OT_print_fountain(bpy.types.Operator):
 #end FOUNTAIN_OT_print_fountain
 
 
-class MoveFountainCursor(bpy.types.Operator):
+class FOUNTAIN_OT_move_fountain_cursor(bpy.types.Operator):
     bl_idname = "scene.move_fountain_cursor"
     bl_label = "Move cursor in fountain script"
 
@@ -825,7 +828,7 @@ class MoveFountainCursor(bpy.types.Operator):
 #end MoveFountainScript
 
 
-class CleanScript(bpy.types.Operator):
+class FOUNTAIN_OT_clean_fountain_script(bpy.types.Operator):
     bl_idname = "scene.clean_fountain_script"
     bl_label = "Clean fountain script"
 
@@ -856,10 +859,10 @@ class CleanScript(bpy.types.Operator):
         return {"FINISHED"}
 
 
-#end CleanScript
+#end FOUNTAIN_OT_clean_fountain_script
 
 
-class UpdateScript(bpy.types.Operator):
+class FOUNTAIN_OT_update_fountain_script(bpy.types.Operator):
     bl_idname = "scene.update_fountain_script"
     bl_label = "Update fountain script"
 
@@ -907,10 +910,10 @@ class UpdateScript(bpy.types.Operator):
         return {"FINISHED"}
 
 
-#end UpdateScript
+#end FOUNTAIN_OT_update_fountain_script
 
 
-class ClearFountain(bpy.types.Operator):
+class FOUNTAIN_OT_clear_fountain(bpy.types.Operator):
     bl_idname = "scene.clear_fountain"
     bl_label = "Clear fountain markers"
 
@@ -929,10 +932,10 @@ class ClearFountain(bpy.types.Operator):
         return {"FINISHED"}
 
 
-#end UpdateScript
+#end FOUNTAIN_OT_update_fountain_script
 
 
-class ImportFountain(bpy.types.Operator):
+class FOUNTAIN_OT_import_fountain(bpy.types.Operator):
     bl_idname = "scene.import_fountain"
     bl_label = "Import fountain script"
 
@@ -1179,7 +1182,7 @@ class ImportFountain(bpy.types.Operator):
         f_index = -1
         for f in fountain_collection:
             f_index += 1
-            context.scene.timeline_markers.new(f.name, f.frame)
+            context.scene.timeline_markers.new(f.name, frame=f.frame)
             if f.duration > 0:
                 f.frame_end = f.frame + f.duration
             else:
@@ -1199,7 +1202,7 @@ class ImportFountain(bpy.types.Operator):
 #end import Fountain
 
 
-class MoveElements(bpy.types.Operator):
+class FOUNTAIN_OT_move_markers(bpy.types.Operator):
     bl_idname = "scene.move_markers"
     bl_label = "Move fountain elements"
 
@@ -1274,7 +1277,7 @@ class MoveElements(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ShowEndMarkers(bpy.types.Operator):
+class FOUNTAIN_OT_show_end_markers(bpy.types.Operator):
     bl_idname = "scene.show_end_markers"
     bl_label = "Show end markers"
 
@@ -1306,8 +1309,7 @@ class ShowEndMarkers(bpy.types.Operator):
         # add end markers for selected markers
         for f in bpy.context.scene.fountain_markers:
             if startSelected[f.name]:
-                context.scene.timeline_markers.new('EndOf_' + f.name,
-                                                   f.frame_end)
+                context.scene.timeline_markers.new('EndOf_' + f.name, frame=f.frame_end)
 
         return {"FINISHED"}
 
@@ -1320,12 +1322,12 @@ def set_markers(context):
 
     context.scene.timeline_markers.clear()
     for f in context.scene.fountain_markers:
-        marker = context.scene.timeline_markers.new(f.name, f.frame)
+        marker = context.scene.timeline_markers.new(f.name, frame=f.frame)
         if marker.name not in selected:
             marker.select = False
 
 
-class SynchFrom(bpy.types.Operator):
+class FOUNTAIN_OT_sync_from(bpy.types.Operator):
     bl_idname = "scene.synch_markers"
     bl_label = "Synch markers to fountain"
 
@@ -1451,7 +1453,7 @@ class UidProperty(property):
 #        self = make_key(self)
 
 
-class FountainMarker_UL_Item(bpy.types.UIList):
+class FOUNTAINMARKER_UL_Item(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
@@ -1469,10 +1471,10 @@ class FountainMarker_UL_Item(bpy.types.UIList):
 
 #bpy.types.TimelineMarker.uid = property(get_uid)
 
-classes = [
-    FountainProps, FOUNTAIN_PT_panel, FOUNTAIN_OT_print_fountain, FountainMarker, SynchFrom,
-    FountainMarker_UL_Item
-]
+#classes = [
+#    FountainProps, FOUNTAIN_PT_panel, FOUNTAIN_OT_print_fountain, FountainMarker, FOUNTAIN_OT_sync_from,
+#    FOUNTAINMARKER_UL_Item
+#]
 
 from bpy.app.handlers import persistent
 
@@ -1482,25 +1484,25 @@ def monitor_markers(dummy):
     bpy.ops.scene.check_markers()
 
 
-#classes = (
-##    DrawingClass,
-#    FountainProps,
-#    FountainMarker,
-#    FOUNTAIN_PT_panel,
-#    FOUNTAIN_OT_check_markers,
-#    FOUNTAIN_OT_show_fountain,
-#    FOUNTAIN_OT_print_fountain,
-#    MoveFountainCursor,
-#    CleanScript,
-#    UpdateScript,
-#    ClearFountain,
-#    ImportFountain,
-#    MoveElements,
-#    ShowEndMarkers,
-#    SynchFrom,
-##    UidProperty,
-#    FountainMarker_UL_Item,
-#)
+classes = (
+#    DrawingClass,
+    FountainProps,
+    FountainMarker,
+    FOUNTAIN_PT_panel,
+    FOUNTAIN_OT_check_markers,
+    FOUNTAIN_OT_show_fountain,
+    FOUNTAIN_OT_print_fountain,
+    FOUNTAIN_OT_move_fountain_cursor,
+    FOUNTAIN_OT_clean_fountain_script,
+    FOUNTAIN_OT_update_fountain_script,
+    FOUNTAIN_OT_clear_fountain,
+    FOUNTAIN_OT_import_fountain,
+    FOUNTAIN_OT_move_markers,
+    FOUNTAIN_OT_show_end_markers,
+    FOUNTAIN_OT_sync_from,
+#    UidProperty,
+    FOUNTAINMARKER_UL_Item,
+)
 
 
 def register():
@@ -1519,7 +1521,7 @@ def register():
 
 def unregister():
     #bpy.app.handlers.load_post.remove(monitor_markers)
-    FOUNTAIN_OT_show_fountain.drawing_class = None
+    #FOUNTAIN_OT_show_fountain.drawing_class = None
     for i in classes:
         bpy.utils.unregister_class(i)
     del bpy.types.Scene.fountain_title
