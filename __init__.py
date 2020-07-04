@@ -17,14 +17,13 @@ import math
 import operator
 import re
 import sys
-import bgl
 import blf
 
-if 'DEBUG_MODE' in sys.argv:
-    import fountain
-else:
-    import fountain
-    #from . import fountain
+#if 'DEBUG_MODE' in sys.argv:
+    #import fountain
+#else:
+    #import fountain
+from . import fountain
 
 from bpy.types import Panel, Operator, Menu, PropertyGroup
 from bpy.props import *
@@ -127,10 +126,11 @@ def draw_string(x,
 
         if len(command) == 2:
             pstr, pcol = command
-            bgl.glColor4f(*pcol)
+            blf.color(font_id, *pcol)
             text_width, text_height = blf.dimensions(font_id, pstr)
             blf.position(font_id, (x + x_offset - line_width), (y + y_offset),
                          0)
+            print("IM HERE - pos:", (x + x_offset - line_width), (y + y_offset), " - color:", pcol, " - string:", pstr)
             blf.draw(font_id, pstr)
             x_offset += text_width
             if x_offset > max_size:
@@ -144,9 +144,8 @@ def draw_string(x,
 
 
 class DrawingClass:
-    def __init__(self, context):
-        self.handle = bpy.types.SpaceView3D.draw_handler_add(
-            self.draw_text_callback, (context, ), 'WINDOW', 'POST_PIXEL')
+    def __init__(self):
+        self.handle = None
         self.scene_name = "Scene"
         self.action = "Action\naction"
         self.dialogue = "Dialogue\ndialogue"
@@ -170,10 +169,9 @@ class DrawingClass:
     def start(self, context):
         if not self.handle:
             self.handle = bpy.types.SpaceView3D.draw_handler_add(
-                self.draw_text_callback, (context, ), 'WINDOW', 'POST_PIXEL')
+                draw_text_callback, (self, context), 'WINDOW', 'POST_PIXEL')
         self.last_frame = -100
         self.last_index = 0
-        self.draw_text_callback(context)
 
     def stop(self):
         if self.handle:
@@ -275,119 +273,119 @@ class DrawingClass:
             ps.append(self.CR)
         return ps
 
-    def draw_text_callback(self, context):
-        try:
-            if not bpy.context.scene.fountain.show_fountain:
-                return
-        except AttributeError:
-            #self.stop()
+def draw_text_callback(self, context):
+    try:
+        if not bpy.context.scene.fountain.show_fountain:
             return
+    except AttributeError:
+        #self.stop()
+        return
 
-        screen_max_characters = bpy.context.scene.fountain.max_characters
-        index = 0
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                self.width = area.width
-                self.height = area.height
-                break
-            index += 1
+    screen_max_characters = bpy.context.scene.fountain.max_characters
+    index = 0
+    for area in bpy.context.screen.areas:
+        if area.type == 'VIEW_3D':
+            self.width = area.width
+            self.height = area.height
+            break
+        index += 1
 
-        for region in bpy.context.area.regions:
-            if region.type == "UI":
-                self.width -= region.width
-                break
+    for region in bpy.context.area.regions:
+        if region.type == "UI":
+            self.width -= region.width
+            break
 
-        if self.width < 200 or self.height < 200:
-            return
+    if self.width < 200 or self.height < 200:
+        return
 
-        self.updateFountainElements(bpy.context)
+    self.updateFountainElements(bpy.context)
 
-        x = 60
-        y = 60
+    x = 60
+    y = 60
 
-        ps = [(self.scene_name, self.WHITE), self.CR, (self.marker,
-                                                       self.WHITE)]
-        x = self.width - 20
-        y = 60
-        label_size = draw_string(
-            x, y, ps, horizontal_align='right',
-            max_width=0.2 * self.width) + 40
+    ps = [(self.scene_name, self.WHITE), self.CR, (self.marker,
+                                                    self.WHITE)]
+    x = self.width - 20
+    y = 60
+    label_size = draw_string(
+        x, y, ps, horizontal_align='right',
+        max_width=0.2 * self.width) + 40
 
-        if self.action:
-            ps = []
-            for line in self.action.splitlines():
-                while len(line) > screen_max_characters or not stringFits(
-                        line, self.width - 40):
-                    screen_max_characters = bpy.context.scene.fountain.max_characters
-                    while not stringFits(line[:screen_max_characters],
-                                         self.width - 40):
-                        split_index = line.rfind(' ', 0, screen_max_characters)
-                        if split_index <= 0:
-                            break
-                        screen_max_characters = split_index
-
+    if self.action:
+        ps = []
+        for line in self.action.splitlines():
+            while len(line) > screen_max_characters or not stringFits(
+                    line, self.width - 40):
+                screen_max_characters = bpy.context.scene.fountain.max_characters
+                while not stringFits(line[:screen_max_characters],
+                                        self.width - 40):
                     split_index = line.rfind(' ', 0, screen_max_characters)
-                    if split_index > 0:
-                        ps.append((line[:split_index], self.CYAN))
-                        ps.append(self.CR)
-                        line = line[split_index + 1:]
-                    else:
+                    if split_index <= 0:
                         break
-                if line == 'Transition':
-                    ps.append((line, self.MAGENTA))
+                    screen_max_characters = split_index
+
+                split_index = line.rfind(' ', 0, screen_max_characters)
+                if split_index > 0:
+                    ps.append((line[:split_index], self.CYAN))
+                    ps.append(self.CR)
+                    line = line[split_index + 1:]
                 else:
-                    ps.append((line, self.CYAN))
-                ps.append(self.CR)
-            x = self.width / 2
-            y = self.height - 70
-            draw_string(
-                x,
-                y,
-                ps,
-                horizontal_align='middle',
-                bottom_align=False,
-                max_width=self.width - 40)
+                    break
+            if line == 'Transition':
+                ps.append((line, self.MAGENTA))
+            else:
+                ps.append((line, self.CYAN))
+            ps.append(self.CR)
+        x = self.width / 2
+        y = self.height - 70
+        draw_string(
+            x,
+            y,
+            ps,
+            horizontal_align='middle',
+            bottom_align=False,
+            max_width=self.width - 40)
 
-        if self.dialogue:
-            ps = self.get_dialogue(self.character, self.dialogue,
-                                   self.width - label_size * 2,
-                                   bpy.context.scene.fountain.max_characters)
-            x = self.width / 2
-            y = 40
-            draw_string(
-                x,
-                y,
-                ps,
-                horizontal_align='middle',
-                bottom_align=True,
-                max_width=self.width - label_size)
+    if self.dialogue:
+        ps = self.get_dialogue(self.character, self.dialogue,
+                                self.width - label_size * 2,
+                                bpy.context.scene.fountain.max_characters)
+        x = self.width / 2
+        y = 40
+        draw_string(
+            x,
+            y,
+            ps,
+            horizontal_align='middle',
+            bottom_align=True,
+            max_width=self.width - label_size)
 
-        if self.dialogues:
-            ps = self.get_dialogue(self.characters[0], self.dialogues[0],
-                                   (self.width / 2) - (label_size * 2),
-                                   bpy.context.scene.fountain.max_characters)
-            x = self.width / 4
-            y = 40
-            draw_string(
-                x,
-                y,
-                ps,
-                horizontal_align='middle',
-                bottom_align=True,
-                max_width=self.width - label_size)
+    if self.dialogues:
+        ps = self.get_dialogue(self.characters[0], self.dialogues[0],
+                                (self.width / 2) - (label_size * 2),
+                                bpy.context.scene.fountain.max_characters)
+        x = self.width / 4
+        y = 40
+        draw_string(
+            x,
+            y,
+            ps,
+            horizontal_align='middle',
+            bottom_align=True,
+            max_width=self.width - label_size)
 
-            ps = self.get_dialogue(self.characters[1], self.dialogues[1],
-                                   (self.width / 2) - (label_size * 2),
-                                   bpy.context.scene.fountain.max_characters)
-            x = 3 * self.width / 4
-            y = 40
-            draw_string(
-                x,
-                y,
-                ps,
-                horizontal_align='middle',
-                bottom_align=True,
-                max_width=self.width - label_size)
+        ps = self.get_dialogue(self.characters[1], self.dialogues[1],
+                                (self.width / 2) - (label_size * 2),
+                                bpy.context.scene.fountain.max_characters)
+        x = 3 * self.width / 4
+        y = 40
+        draw_string(
+            x,
+            y,
+            ps,
+            horizontal_align='middle',
+            bottom_align=True,
+            max_width=self.width - label_size)
 
 
 class FountainProps(PropertyGroup):
@@ -668,14 +666,13 @@ class FOUNTAIN_OT_show_fountain(bpy.types.Operator):
 
     #     return {'CANCELLED'}
 
-    def invoke(self, context, event):
-        return self.execute(context)
-
     def execute(self, context):
+        print("SHOW FOUNTAIN")
         scn = context.scene
         try:
             fountain = scn.fountain
-        except AttributeError:
+        except AttributeError as e:
+            print(e)
             if FOUNTAIN_OT_show_fountain.drawing_class is not None:
                 FOUNTAIN_OT_show_fountain.drawing_class.stop()
             return {'CANCELLED'}
@@ -683,20 +680,13 @@ class FOUNTAIN_OT_show_fountain(bpy.types.Operator):
             FOUNTAIN_OT_show_fountain.show = fountain.show_fountain
             if FOUNTAIN_OT_show_fountain.show:
                 if FOUNTAIN_OT_show_fountain.drawing_class is None:
-                    FOUNTAIN_OT_show_fountain.drawing_class = DrawingClass(context)
+                    FOUNTAIN_OT_show_fountain.drawing_class = DrawingClass()
                 FOUNTAIN_OT_show_fountain.drawing_class.start(context)
             else:
                 if FOUNTAIN_OT_show_fountain.drawing_class is not None:
                     FOUNTAIN_OT_show_fountain.drawing_class.stop()
 
-            for window in bpy.context.window_manager.windows:
-                screen = window.screen
-
-                for area in screen.areas:
-                    if area.type == 'VIEW_3D':
-                        area.tag_redraw()
-                        break
-
+        context.area.tag_redraw()
         return {'FINISHED'}
 
 
@@ -1515,7 +1505,8 @@ def register():
         type=FountainMarker)
     bpy.types.Scene.fountain_markers_index = bpy.props.IntProperty()
     #bpy.ops.scene.show_fountain('EXEC_DEFAULT')
-    FOUNTAIN_OT_show_fountain.drawing_class = DrawingClass(bpy.context)
+    FOUNTAIN_OT_show_fountain.drawing_class = DrawingClass()
+    FOUNTAIN_OT_show_fountain.drawing_class.start(bpy.context)
     #bpy.app.handlers.load_post.append(monitor_markers)
 
 
