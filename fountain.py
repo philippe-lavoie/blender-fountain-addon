@@ -67,13 +67,15 @@ class Fountain:
             self._parse_body(contents.splitlines())
 
     def _parse_head(self, script_head):
-        open_key = None
+        open_key = None        
         for line in script_head:
             line = line.rstrip()
-            if line[0].isspace():
+            if len(line) == 0:
+                continue
+            if line.isspace() or line[0].isspace():
                 self.metadata[open_key].append(line.strip())
             elif line[-1] == ':':
-                open_key = line[0:-1].lower()
+                open_key = line[0:-1].lower() 
                 self.metadata[open_key] = list()
             else:
                 key, value = line.split(':', 1)
